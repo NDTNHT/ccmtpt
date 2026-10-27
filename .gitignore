@@ -1,0 +1,14 @@
+target/
+.vscode/
+.idea/
+*.iml
+*.class
+*.log
+__pycache__/
+*.pyc
+.github/modernize/
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.json

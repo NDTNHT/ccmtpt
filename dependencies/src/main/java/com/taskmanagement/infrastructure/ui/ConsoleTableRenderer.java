@@ -32,6 +32,7 @@ public class ConsoleTableRenderer {
         out.println("4. Hoan thanh Task");
         out.println("5. Huy Task");
         out.println("6. Danh gia lai do uu tien");
+        out.println("7. Tro ly AI (Chia nho, Do uu tien, Tom tat)");
         out.println("0. Thoat");
         out.println("-----------------------------------------");
         if (currentTaskId != null) {

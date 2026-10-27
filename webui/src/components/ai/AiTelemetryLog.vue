@@ -2,12 +2,12 @@
   <div class="ai-telemetry-log">
     <div class="log-header">
       <div class="header-left">
-        <span class="ascii-badge text-alert">[TERMINAL LOG]</span>
-        <span class="log-title">NEURAL GATEWAY TELEMETRY FEED</span>
+        <span class="ascii-badge text-alert">[SYSTEM LOG]</span>
+        <span class="log-title">AI ACTIVITY &amp; AUDIT FEED</span>
       </div>
       <div class="header-right">
-        <span class="log-count">{{ state.telemetryLogs.length }} EVENTS BUFFERED</span>
-        <button class="clear-log-btn" @click="clearLogs">[PURGE LOG]</button>
+        <span class="log-count">{{ state.telemetryLogs.length }} EVENTS</span>
+        <button class="clear-log-btn" @click="clearLogs">[CLEAR LOG]</button>
       </div>
     </div>
 

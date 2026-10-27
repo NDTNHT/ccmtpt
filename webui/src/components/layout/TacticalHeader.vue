@@ -2,13 +2,13 @@
   <header class="tactical-header">
     <div class="brand-zone">
       <div class="brand-logo">
-        <span class="ascii-badge text-alert">[SYS.OP//V3.5]</span>
-        <h1 class="system-title">TACTICAL MISSION CONTROL</h1>
+        <span class="ascii-badge text-alert">[TASK OPS]</span>
+        <h1 class="system-title">TASK MANAGEMENT SYSTEM</h1>
       </div>
       <div class="system-telemetry">
         <span class="telemetry-item">
           <span class="status-led" :class="aiState.verification.valid ? 'green' : 'amber'"></span>
-          <span class="telemetry-label">GATEWAY:</span>
+          <span class="telemetry-label">AI GATEWAY:</span>
           <span v-if="aiState.verification.valid" class="telemetry-val text-green">
             ONLINE [{{ aiState.verification.discoveredModelsCount }} MODELS]
           </span>
@@ -18,12 +18,12 @@
         </span>
         <span class="telemetry-divider">///</span>
         <span class="telemetry-item">
-          <span class="telemetry-label">ACTIVE ENGINE:</span>
+          <span class="telemetry-label">ACTIVE MODEL:</span>
           <span class="telemetry-val text-amber">{{ activeEngine }}</span>
         </span>
         <span class="telemetry-divider">///</span>
         <span class="telemetry-item">
-          <span class="telemetry-label">CYCLE TIME:</span>
+          <span class="telemetry-label">TIME:</span>
           <span class="telemetry-val text-dim">{{ currentTimestamp }}</span>
         </span>
       </div>

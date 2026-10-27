@@ -96,8 +96,8 @@ export function useTaskStore() {
         }));
       }
     } catch (err) {
-      console.warn('Backend tasks offline, maintaining active telemetry simulation cache:', err.message);
-      state.error = `OFFLINE TELEMETRY MODE: ${err.message}`;
+      console.warn('Backend tasks offline, maintaining local cache:', err.message);
+      state.error = `OFFLINE MODE: ${err.message}`;
     } finally {
       state.loading = false;
     }
@@ -142,11 +142,11 @@ export function useTaskStore() {
         createdTask = {
           taskId: `task-local-${Date.now().toString().slice(-4)}`,
           title: sanitizedTitle.toUpperCase(),
-          description: sanitizedDescription || 'MANUALLY DISPATCHED MISSION BRIEF',
+          description: sanitizedDescription || 'Task created in offline mode',
           status: 'TODO',
           priority: payload.priority || 'MEDIUM',
           dueDate: formattedDueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-          projectId: validProjectId || 'proj-omega-01',
+          projectId: validProjectId || null,
           subTasks: []
         };
       }
@@ -161,7 +161,7 @@ export function useTaskStore() {
               }
               return {
                 id: (st.subTaskId || st.id || `st-${Date.now()}-${i}`).toString(),
-                title: st.title || 'CHECKPOINT',
+                title: st.title || 'Subtask',
                 completed: !!st.completed
               };
             })

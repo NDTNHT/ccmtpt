@@ -4,10 +4,10 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="header-tag">
-          <span class="ascii-badge text-alert">[MISSION DISPATCH PROTOCOL // 01]</span>
-          <span class="modal-title">AUTHORIZE NEW TACTICAL TASK BRIEF</span>
+          <span class="ascii-badge text-alert">[TASK // NEW]</span>
+          <span class="modal-title">CREATE NEW TASK</span>
         </div>
-        <button class="modal-close-btn" @click="handleClose">[ABORT / ESC]</button>
+        <button class="modal-close-btn" @click="handleClose">[CLOSE / ESC]</button>
       </div>
 
       <!-- Modal Body / Form -->
@@ -17,7 +17,7 @@
           <div class="section-label-row">
             <label class="form-label">
               <span class="label-prefix">&gt;&gt;</span>
-              MISSION IDENTIFIER / TITLE
+              TASK TITLE
               <span class="required-star">*</span>
             </label>
             <span class="char-count" :class="{ 'text-hazard': form.title.length > 100 }">
@@ -29,7 +29,7 @@
             v-model="form.title"
             type="text"
             class="tactical-input title-input"
-            placeholder="E.G. DEPLOY PROMETHEUS TELEMETRY RELAY..."
+            placeholder="e.g. Implement user authentication..."
             maxlength="100"
             required
             @keydown.enter.prevent
@@ -45,7 +45,7 @@
           <div class="form-section">
             <label class="form-label">
               <span class="label-prefix">&gt;&gt;</span>
-              PRIORITY RATING
+              PRIORITY
             </label>
             <div class="priority-chips-group">
               <button
@@ -62,19 +62,19 @@
             </div>
           </div>
 
-          <!-- Project Sector Selector -->
+          <!-- Project Selector -->
           <div class="form-section project-section">
             <div class="section-label-row">
               <label class="form-label">
                 <span class="label-prefix">&gt;&gt;</span>
-                TARGET PROJECT / SECTOR
+                PROJECT
               </label>
               <button
                 type="button"
                 class="new-project-toggle-btn"
                 @click="showNewProjectForm = !showNewProjectForm"
               >
-                {{ showNewProjectForm ? '[-] CANCEL' : '[+ NEW REGULAR SECTOR]' }}
+                {{ showNewProjectForm ? '[-] CANCEL' : '[+ NEW PROJECT]' }}
               </button>
             </div>
 
@@ -85,7 +85,7 @@
                   v-model="newProjectName"
                   type="text"
                   class="tactical-input new-project-input"
-                  placeholder="NEW REGULAR PROJECT (E.G. OMEGA CLUSTER)..."
+                  placeholder="New project name (e.g. Mobile App)..."
                   maxlength="100"
                   @keydown.enter.prevent="handleCreateRegularProject"
                 />
@@ -95,30 +95,30 @@
                   :disabled="!newProjectName.trim() || newProjectLoading"
                   @click="handleCreateRegularProject"
                 >
-                  {{ newProjectLoading ? '[...]' : '[+ CREATE REGULAR]' }}
+                  {{ newProjectLoading ? '[...]' : '[+ CREATE PROJECT]' }}
                 </button>
               </div>
               <span class="new-project-note">
-                [DOMAIN AGGREGATE // TYPE = REGULAR]
+                [PROJECT TYPE: REGULAR]
               </span>
             </div>
 
             <select v-model="form.projectId" class="tactical-select project-select">
-              <optgroup label="── REGULAR MISSION SECTORS (STRUCTURED) ──">
+              <optgroup label="── REGULAR PROJECTS ──">
                 <option
                   v-for="project in regularProjects"
                   :key="project.id"
                   :value="project.id"
                 >
-                  [{{ project.name }}] // REGULAR PROJECT
+                  {{ project.name }} (Regular)
                 </option>
                 <option v-if="regularProjects.length === 0" disabled value="">
-                  (NO REGULAR PROJECTS RECORDED — CLICK [+ NEW REGULAR SECTOR])
+                  (No regular projects yet — click [+ NEW PROJECT])
                 </option>
               </optgroup>
-              <optgroup label="── INBOX QUEUE (TRIAGE) ──">
+              <optgroup label="── INBOX (DEFAULT) ──">
                 <option :value="inboxProject?.id || null">
-                  [{{ inboxProject ? inboxProject.name : 'INBOX' }}] // DEFAULT TRIAGE QUEUE
+                  {{ inboxProject ? inboxProject.name : 'INBOX' }} (Default Inbox)
                 </option>
               </optgroup>
             </select>
@@ -129,13 +129,13 @@
                 class="type-badge"
                 :class="selectedProjectType === 'REGULAR' ? 'badge-regular' : 'badge-inbox'"
               >
-                SECTOR TYPE: [{{ selectedProjectType }}]
+                PROJECT TYPE: [{{ selectedProjectType }}]
               </span>
               <span class="type-hint" v-if="selectedProjectType === 'REGULAR'">
-                ✓ Classified under structured domain project (Regular)
+                ✓ Organized inside a dedicated project
               </span>
               <span class="type-hint" v-else>
-                ○ Default inbox for unclassified missions
+                ○ Quick triage queue for unassigned tasks
               </span>
             </div>
           </div>
@@ -146,9 +146,9 @@
           <div class="section-label-row">
             <label class="form-label">
               <span class="label-prefix">&gt;&gt;</span>
-              TARGET DEADLINE
+              DUE DATE
             </label>
-            <span class="sub-label">[PROJECTED COMPLETION WINDOW]</span>
+            <span class="sub-label">[DEADLINE]</span>
           </div>
           <div class="deadline-input-row">
             <input
@@ -189,12 +189,12 @@
           </div>
         </div>
 
-        <!-- Section: Operational Description -->
+        <!-- Section: Description -->
         <div class="form-section">
           <div class="section-label-row">
             <label class="form-label">
               <span class="label-prefix">&gt;&gt;</span>
-              MISSION SPECIFICATIONS &amp; PARAMETERS
+              DESCRIPTION
             </label>
             <span class="char-count" :class="{ 'text-hazard': form.description.length > 500 }">
               {{ form.description.length }} / 500
@@ -205,16 +205,16 @@
             class="tactical-textarea"
             rows="3"
             maxlength="500"
-            placeholder="DOCUMENT MISSION SPECIFICATIONS, OPERATIONAL CONSTRAINTS, HARDWARE TARGETS, AND ACCEPTANCE CRITERIA..."
+            placeholder="Add a detailed description, requirements, or acceptance criteria..."
           ></textarea>
         </div>
 
-        <!-- Section: Pre-dispatch Checklist Builder -->
+        <!-- Section: Checklist Builder -->
         <div class="form-section checklist-builder-section">
           <div class="section-label-row">
             <label class="form-label">
               <span class="label-prefix">&gt;&gt;</span>
-              INITIAL MISSION CHECKPOINTS ({{ form.subTasks.length }})
+              SUBTASKS / CHECKLIST ({{ form.subTasks.length }})
             </label>
             <button
               type="button"
@@ -222,7 +222,7 @@
               :disabled="!form.title.trim()"
               @click="generateSmartCheckpoints"
             >
-              [🤖 AI DRAFT CHECKPOINTS]
+              [🤖 AI SUGGEST SUBTASKS]
             </button>
           </div>
 
@@ -231,7 +231,7 @@
               v-model="newSubTaskTitle"
               type="text"
               class="tactical-input subtask-input"
-              placeholder="ENTER CHECKPOINT (E.G. CONDUCT TLS BENCHMARK TEST)..."
+              placeholder="Add a subtask (e.g. Write integration tests)..."
               @keydown.enter.prevent="handleAddSubTask"
             />
             <button
@@ -240,7 +240,7 @@
               :disabled="!newSubTaskTitle.trim()"
               @click="handleAddSubTask"
             >
-              [+ ADD CHECKPOINT]
+              [+ ADD SUBTASK]
             </button>
           </div>
 
@@ -256,15 +256,15 @@
               <button
                 type="button"
                 class="st-remove-btn"
-                title="Remove checkpoint"
+                title="Remove subtask"
                 @click="removeSubTask(index)"
               >
-                [REMOVE / X]
+                [REMOVE]
               </button>
             </div>
           </div>
           <div v-else class="empty-subtasks-note">
-            [ NO INITIAL CHECKPOINTS ADDED — OPTIONALLY ADD ABOVE OR DECOMPOSE WITH AI AFTER DISPATCH ]
+            [ No subtasks added yet — enter above or use AI to generate ]
           </div>
         </div>
 
@@ -273,7 +273,7 @@
           <div class="footer-telemetry">
             <span class="status-indicator"></span>
             <span class="telemetry-text">
-              STATUS: {{ isSubmitting ? 'TRANSMITTING BRIEF TO CORE...' : 'READY FOR DISPATCH' }}
+              STATUS: {{ isSubmitting ? 'SAVING TASK...' : 'READY' }}
             </span>
           </div>
 
@@ -284,15 +284,15 @@
               :disabled="isSubmitting"
               @click="handleClose"
             >
-              [CANCEL / ABORT]
+              [CANCEL]
             </button>
             <button
               type="submit"
               class="tactical-btn-dispatch"
               :disabled="isSubmitting || !isFormValid"
             >
-              <span v-if="isSubmitting">[TRANSMITTING...]</span>
-              <span v-else>┌ [AUTHORIZE &amp; DISPATCH MISSION] ┘</span>
+              <span v-if="isSubmitting">[SAVING...]</span>
+              <span v-else>┌ [CREATE TASK] ┘</span>
             </button>
           </div>
         </div>
@@ -451,33 +451,33 @@ function generateSmartCheckpoints() {
   const suggestions = [];
   if (title.includes('AUTH') || title.includes('KEY') || title.includes('SECURITY')) {
     suggestions.push(
-      'Audit cryptographic cipher suite and handshake protocols',
-      'Validate TLS 1.3 certificate expiration thresholds',
-      'Purge sandbox telemetry tokens and rotate keys'
+      'Define authentication flow and requirements',
+      'Implement token validation and expiration checks',
+      'Write security tests and verify permissions'
     );
   } else if (title.includes('TEST') || title.includes('VERIFY') || title.includes('PARITY')) {
     suggestions.push(
-      'Execute automated unit & integration test suites',
-      'Analyze code coverage & regression delta',
-      'Capture and record baseline telemetry logs'
+      'Write unit tests for core business logic',
+      'Test edge cases and error handling',
+      'Verify all integration test suites pass'
     );
   } else if (title.includes('DEPLOY') || title.includes('RELEASE') || title.includes('SERVER')) {
     suggestions.push(
-      'Verify container health check and port binding',
-      'Run smoke tests against target ingress controller',
-      'Monitor cluster CPU & memory metrics for 15 minutes'
+      'Check configuration and environment variables',
+      'Perform smoke test on staging environment',
+      'Verify deployment health checks and logs'
     );
   } else if (title.includes('DATABASE') || title.includes('MIGRATE') || title.includes('DATA')) {
     suggestions.push(
-      'Execute schema migration script in dry-run mode',
-      'Validate foreign key constraints and index integrity',
-      'Verify data backup snapshot before cutover'
+      'Review database schema and migration script',
+      'Run migration on test environment and verify integrity',
+      'Validate queries and performance benchmarks'
     );
   } else {
     suggestions.push(
-      `Initialize operational workspace for ${form.title.trim()}`,
-      'Perform subsystem parity verification & parameter validation',
-      'Run end-to-end integration test and finalize dispatch log'
+      `Review requirements and plan implementation for ${form.title.trim()}`,
+      'Implement core changes and verify edge cases',
+      'Test functionality and review code'
     );
   }
 
@@ -487,7 +487,7 @@ function generateSmartCheckpoints() {
     }
   });
 
-  emit('notify', `Generated ${suggestions.length} tactical checkpoints from mission brief.`, 'info');
+  emit('notify', `Added ${suggestions.length} suggested subtasks.`, 'info');
 }
 
 function resetForm() {
@@ -519,13 +519,13 @@ async function handleSubmit() {
     };
 
     const created = await createTask(payload);
-    emit('notify', `Mission "${created.title}" successfully dispatched to core telemetry.`, 'success');
+    emit('notify', `Task "${created.title}" created successfully.`, 'success');
     emit('created', created);
     resetForm();
     emit('close');
   } catch (err) {
-    console.error('Failed to dispatch mission:', err);
-    emit('notify', `Dispatch failed: ${err.message || 'Unknown network error'}`, 'error');
+    console.error('Failed to create task:', err);
+    emit('notify', `Failed to create task: ${err.message || 'Unknown network error'}`, 'error');
   } finally {
     isSubmitting.value = false;
   }

@@ -4,7 +4,7 @@
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="header-tag">
-          <span class="ascii-badge text-alert">[MISSION SPEC // {{ task?.id }}]</span>
+          <span class="ascii-badge text-alert">[TASK // {{ task?.id }}]</span>
           <span class="modal-title">{{ task?.title }}</span>
         </div>
         <button class="modal-close-btn" @click="$emit('close')">[CLOSE / ESC]</button>
@@ -31,66 +31,66 @@
           </div>
         </div>
 
-        <div class="section-divider">/// OPERATIONAL DESCRIPTION</div>
+        <div class="section-divider">/// DESCRIPTION</div>
         <div class="desc-box">
-          {{ task.description || 'NO SPECIFICATION DATA RECORDED.' }}
+          {{ task.description || 'No description provided.' }}
         </div>
 
         <!-- AI Assistant Action Bar -->
-        <div class="section-divider">/// AI TACTICAL COPILOT CONTROLS</div>
+        <div class="section-divider">/// AI ASSISTANT ACTIONS</div>
         <div class="ai-controls-bar">
           <button 
             class="ai-action-btn"
             :disabled="aiLoading"
             @click="onAiDecompose"
           >
-            [1] DECOMPOSE CHECKLIST
+            [1] BREAK DOWN SUBTASKS
           </button>
           <button 
             class="ai-action-btn"
             :disabled="aiLoading"
             @click="onAiEstimateDeadline"
           >
-            [2] ESTIMATE DEADLINE
+            [2] ESTIMATE DUE DATE
           </button>
           <button 
             class="ai-action-btn"
             :disabled="aiLoading"
             @click="onAiAnalyzePriority"
           >
-            [3] AUTO-PRIORITIZE
+            [3] SUGGEST PRIORITY
           </button>
           <button 
             class="ai-action-btn"
             :disabled="aiLoading"
             @click="onAiGenerateSummary"
           >
-            [4] GENERATE SUMMARY
+            [4] SUMMARIZE TASK
           </button>
         </div>
 
         <!-- AI Real-Time Feedback Stream -->
         <div class="ai-telemetry-banner" v-if="aiFeedback">
           <div class="ai-banner-header">
-            <span class="ascii-badge">[AI TELEMETRY RESPONSE]</span>
+            <span class="ascii-badge">[AI RECOMMENDATION]</span>
             <span class="ai-time">{{ aiFeedback.timestamp }}</span>
           </div>
           <p class="ai-banner-text">{{ aiFeedback.text }}</p>
           <div class="ai-banner-actions" v-if="aiFeedback.applyPayload">
             <button class="tactical-btn-sm text-green" @click="applyAiRecommendation">
-              [APPLY RECOMMENDATION TO TASK]
+              [APPLY TO TASK]
             </button>
           </div>
         </div>
 
         <!-- Subtasks Checklist Section -->
         <div class="section-divider">
-          <span>/// SUBTASK CHECKLIST ({{ completedCount }}/{{ totalSubTasks }})</span>
+          <span>/// SUBTASKS ({{ completedCount }}/{{ totalSubTasks }})</span>
         </div>
 
         <div class="checklist-container">
           <div v-if="!task.subTasks || task.subTasks.length === 0" class="empty-checklist">
-            NO SUB-CHECKLIST DEFINED. CLICK "[1] DECOMPOSE CHECKLIST" OR ADD BELOW.
+            No subtasks yet. Click "[1] BREAK DOWN SUBTASKS" or add one below.
           </div>
 
           <div v-else class="checklist-items">
@@ -105,7 +105,7 @@
                 {{ st.completed ? '[X]' : '[ ]' }}
               </span>
               <span class="subtask-text">{{ st.title }}</span>
-              <span class="subtask-state">{{ st.completed ? 'VERIFIED' : 'PENDING' }}</span>
+              <span class="subtask-state">{{ st.completed ? 'COMPLETED' : 'PENDING' }}</span>
             </div>
           </div>
 
@@ -115,10 +115,10 @@
               v-model="newSubTaskTitle"
               type="text" 
               class="tactical-input" 
-              placeholder="ENTER NEW SUB-ROUTINE OR CHECKPOINT..."
+              placeholder="Add a new subtask..."
             />
             <button type="submit" class="tactical-btn-sm" :disabled="!newSubTaskTitle.trim()">
-              [ADD ITEM]
+              [+ ADD SUBTASK]
             </button>
           </form>
         </div>
@@ -127,7 +127,7 @@
       <!-- Modal Footer -->
       <div class="modal-footer">
         <div class="footer-status">
-          DATA PROTOCOL: REST/JSON // STATE SYNCHRONIZED
+          TASK SYNCHRONIZED // SPRING BOOT REST API
         </div>
         <div class="footer-actions">
           <button 
@@ -135,7 +135,7 @@
             class="tactical-btn-sm text-amber"
             @click="$emit('start-task', task.id)"
           >
-            [DISPATCH TASK]
+            [START TASK]
           </button>
           <button 
             v-if="task?.status === 'IN_PROGRESS'" 
@@ -149,7 +149,7 @@
             class="tactical-btn-sm text-dim"
             @click="$emit('cancel-task', task.id)"
           >
-            [ABORT TASK]
+            [CANCEL TASK]
           </button>
         </div>
       </div>
@@ -306,16 +306,16 @@ function applyAiRecommendation() {
 
   if (type === 'DECOMPOSE' && items) {
     addSubTasks(props.task.id, items);
-    emit('notify', 'Checklist items applied to mission package.', 'success');
+    emit('notify', 'Subtasks added to task.', 'success');
   } else if (type === 'DEADLINE' && deadline) {
     updateTaskInState(props.task.id, { dueDate: deadline });
-    emit('notify', `Task due date adjusted to ${deadline}.`, 'success');
+    emit('notify', `Due date updated to ${deadline}.`, 'success');
   } else if (type === 'PRIORITY' && priority) {
     updateTaskInState(props.task.id, { priority });
-    emit('notify', `Task priority shifted to [${priority}].`, 'success');
+    emit('notify', `Priority updated to [${priority}].`, 'success');
   } else if (type === 'SUMMARY' && summary) {
     updateTaskInState(props.task.id, { aiSummary: summary });
-    emit('notify', 'AI summary registered to task dossier.', 'success');
+    emit('notify', 'AI summary added to task.', 'success');
   }
   aiFeedback.value = null;
 }

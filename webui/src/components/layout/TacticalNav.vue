@@ -7,7 +7,7 @@
         @click="$emit('update:currentTab', 'tasks')"
       >
         <span class="tab-index">01//</span>
-        <span class="tab-title">TASK DISPATCH &amp; CHECKLISTS</span>
+        <span class="tab-title">TASKS &amp; PROJECTS</span>
         <span class="tab-indicator" v-if="currentTab === 'tasks'">[ACTIVE]</span>
       </button>
 
@@ -17,13 +17,13 @@
         @click="$emit('update:currentTab', 'ai')"
       >
         <span class="tab-index">02//</span>
-        <span class="tab-title">AI NEURAL COPILOT &amp; GATEWAY</span>
+        <span class="tab-title">AI COPILOT &amp; SETTINGS</span>
         <span class="tab-indicator" v-if="currentTab === 'ai'">[ACTIVE]</span>
       </button>
     </div>
 
     <div class="nav-system-status">
-      <span class="status-code">SECURITY CLEARANCE: LVL-4 // ACCESS GRANTED</span>
+      <span class="status-code">SYSTEM READY // BACKEND CONNECTED</span>
     </div>
   </nav>
 </template>

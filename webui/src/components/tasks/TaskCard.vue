@@ -33,7 +33,7 @@
       <!-- Subtasks Checklist Snapshot -->
       <div class="checklist-preview" v-if="task.subTasks && task.subTasks.length > 0">
         <div class="checklist-header">
-          <span>CHECKLIST // {{ completedCount }}/{{ task.subTasks.length }}</span>
+          <span>SUBTASKS // {{ completedCount }}/{{ task.subTasks.length }}</span>
           <span>{{ completionPercent }}%</span>
         </div>
         <div class="checklist-progress-bar">
@@ -50,7 +50,7 @@
             <span class="subtask-label">{{ st.title }}</span>
           </li>
           <li v-if="task.subTasks.length > 3" class="more-subtasks">
-            + {{ task.subTasks.length - 3 }} additional sub-checkpoints...
+            + {{ task.subTasks.length - 3 }} more subtasks...
           </li>
         </ul>
       </div>
@@ -62,7 +62,7 @@
         </span>
         <span class="meta-divider">|</span>
         <span class="meta-item">
-          <span class="meta-label">PROJ:</span>
+          <span class="meta-label">PROJECT:</span>
           <span class="meta-val text-dim">{{ task.projectId || 'DEFAULT' }}</span>
         </span>
       </div>
@@ -73,7 +73,7 @@
         <button 
           v-if="task.status === 'TODO'" 
           class="mini-btn text-amber"
-          title="Dispatch Task"
+          title="Start Task"
           @click.stop="$emit('start', task.id)"
         >
           [START]
@@ -84,7 +84,7 @@
           title="Complete Task"
           @click.stop="$emit('complete', task.id)"
         >
-          [FINISH]
+          [COMPLETE]
         </button>
         <button 
           v-if="task.status !== 'COMPLETED' && task.status !== 'CANCELLED'" 
@@ -92,12 +92,12 @@
           title="Cancel Task"
           @click.stop="$emit('cancel', task.id)"
         >
-          [ABORT]
+          [CANCEL]
         </button>
       </div>
 
       <button class="mini-btn ai-inspect-btn" @click.stop="$emit('inspect', task)">
-        [AI OPS &gt;&gt;]
+        [AI COPILOT &gt;&gt;]
       </button>
     </div>
   </div>

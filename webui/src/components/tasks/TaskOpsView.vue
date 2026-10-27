@@ -3,24 +3,24 @@
     <!-- Telemetry Metric Row -->
     <div class="telemetry-stat-row">
       <div class="stat-cell">
-        <span class="cell-label">TOTAL MISSIONS</span>
+        <span class="cell-label">TOTAL TASKS</span>
         <span class="cell-value">{{ taskStats.total }}</span>
-        <span class="cell-sub">[REGISTERED IN CORE]</span>
+        <span class="cell-sub">[ALL REGISTERED]</span>
       </div>
       <div class="stat-cell">
         <span class="cell-label">IN PROGRESS</span>
         <span class="cell-value text-amber">{{ taskStats.inProgress }}</span>
-        <span class="cell-sub">[ACTIVE WORKSTREAMS]</span>
+        <span class="cell-sub">[ACTIVE]</span>
       </div>
       <div class="stat-cell">
         <span class="cell-label">COMPLETED</span>
         <span class="cell-value text-green">{{ taskStats.completed }}</span>
-        <span class="cell-sub">[SUCCESSFUL DISPATCH]</span>
+        <span class="cell-sub">[RESOLVED]</span>
       </div>
       <div class="stat-cell">
         <span class="cell-label">COMPLETION RATE</span>
         <span class="cell-value">{{ taskStats.completionRate }}%</span>
-        <span class="cell-sub">[TACTICAL VELOCITY]</span>
+        <span class="cell-sub">[OVERALL PROGRESS]</span>
       </div>
     </div>
 
@@ -30,13 +30,13 @@
         <!-- Action & Mission Dispatch Bar -->
         <div class="mission-action-bar">
           <div class="action-bar-label">
-            <span class="ascii-badge text-alert">[MISSION LOG MATRIX]</span>
-            <span class="matrix-status">{{ filteredTasks.length }} MISSIONS DISPLAYED</span>
+            <span class="ascii-badge text-alert">[TASK BOARD]</span>
+            <span class="matrix-status">{{ filteredTasks.length }} TASKS</span>
           </div>
           <button class="primary-dispatch-btn" @click="isCreateModalOpen = true">
             <span class="dispatch-bracket">┌</span>
             <span class="dispatch-plus">+</span>
-            <span class="dispatch-label">DISPATCH NEW MISSION BRIEF</span>
+            <span class="dispatch-label">CREATE NEW TASK</span>
             <span class="dispatch-bracket">┘</span>
           </button>
         </div>
@@ -48,7 +48,7 @@
             <input
               type="text"
               class="search-input"
-              placeholder="FILTER BY ID, TITLE, OR KEYWORD..."
+              placeholder="SEARCH BY TITLE, ID, OR KEYWORD..."
               :value="state.searchQuery"
               @input="onSearchInput"
             />
@@ -86,7 +86,7 @@
           <div class="banner-header" @click="showCreateForm = !showCreateForm">
             <div class="header-left">
               <span class="ascii-badge text-alert">[+]</span>
-              <span class="banner-title">QUICK INLINE DISPATCH FORM</span>
+              <span class="banner-title">QUICK ADD TASK</span>
             </div>
             <div class="header-right">
               <button
@@ -94,7 +94,7 @@
                 class="open-modal-link-btn"
                 @click.stop="isCreateModalOpen = true"
               >
-                [FULL MISSION DIALOG ↗]
+                [EXPAND FULL FORM ↗]
               </button>
               <span class="toggle-icon">{{ showCreateForm ? '[-] COLLAPSE' : '[+] EXPAND' }}</span>
             </div>
@@ -106,7 +106,7 @@
                 v-model="newTask.title"
                 type="text"
                 class="tactical-input title-input"
-                placeholder="MISSION TITLE (E.G. DEPLOY PROMETHEUS NODE)..."
+                placeholder="Task title (e.g. Set up payment gateway)..."
                 required
               />
               <select v-model="newTask.priority" class="tactical-select">
@@ -121,16 +121,16 @@
                 v-model="newTask.description"
                 class="tactical-textarea"
                 rows="2"
-                placeholder="MISSION SPECIFICATIONS, PARAMETERS, AND ACCEPTANCE CRITERIA..."
+                placeholder="Task description and acceptance criteria..."
               ></textarea>
             </div>
             <div class="form-row form-submit-row">
               <div class="date-input-group">
-                <span class="input-label">DEADLINE:</span>
+                <span class="input-label">DUE DATE:</span>
                 <input v-model="newTask.dueDate" type="date" class="tactical-date-input" />
               </div>
               <button type="submit" class="tactical-btn-submit" :disabled="!newTask.title.trim()">
-                [AUTHORIZE &amp; DISPATCH TASK]
+                [CREATE TASK]
               </button>
             </div>
           </form>
@@ -154,8 +154,8 @@
 
         <!-- Empty State Directive Branching -->
         <div v-else class="empty-state-box">
-          <div class="empty-ascii">[ NO MATCHING TASKS LOCATED IN CURRENT TELEMETRY STREAM ]</div>
-          <p class="empty-hint">Revise status/priority filter or dispatch a new tactical task.</p>
+          <div class="empty-ascii">[ NO MATCHING TASKS FOUND ]</div>
+          <p class="empty-hint">Try adjusting your search filters or create a new task.</p>
         </div>
       </div>
 
@@ -163,7 +163,7 @@
       <aside class="telemetry-inspector">
         <div class="inspector-header">
           <span class="ascii-badge text-alert">[INSPECTOR]</span>
-          <span class="inspector-title">TACTICAL TELEMETRY STREAM</span>
+          <span class="inspector-title">TASK DETAILS</span>
         </div>
 
         <div class="inspector-content" v-if="activePreviewTask">
@@ -179,7 +179,7 @@
               <span class="val text-alert">{{ activePreviewTask.priority }}</span>
             </div>
             <div class="meta-line">
-              <span class="lbl">DEADLINE:</span>
+              <span class="lbl">DUE DATE:</span>
               <span class="val">{{ activePreviewTask.dueDate || 'UNASSIGNED' }}</span>
             </div>
             <div class="meta-line">
@@ -188,13 +188,13 @@
             </div>
           </div>
 
-          <div class="spec-section-header">/// MISSION BRIEF</div>
+          <div class="spec-section-header">/// DESCRIPTION</div>
           <p class="preview-desc">
-            {{ activePreviewTask.description || 'No detailed specifications entered.' }}
+            {{ activePreviewTask.description || 'No description provided.' }}
           </p>
 
           <div class="spec-section-header">
-            /// SUBTASK PROGRESS ({{ activePreviewTask.subTasks?.length || 0 }} ITEMS)
+            /// SUBTASKS ({{ activePreviewTask.subTasks?.length || 0 }})
           </div>
           <div class="preview-subtasks">
             <div
@@ -207,24 +207,24 @@
               <span class="txt">{{ st.title }}</span>
             </div>
             <div v-if="!activePreviewTask.subTasks?.length" class="no-st">
-              [ NO SUBTASKS GENERATED ]
+              [ NO SUBTASKS ]
             </div>
           </div>
 
           <div v-if="activePreviewTask.aiSummary" class="ai-summary-card">
-            <div class="summary-lbl">[AI DOSSIER SUMMARY]</div>
+            <div class="summary-lbl">[AI SUMMARY]</div>
             <p class="summary-txt">{{ activePreviewTask.aiSummary }}</p>
           </div>
 
           <div class="inspector-action-bar">
             <button class="tactical-btn-block" @click="openModalForTask(activePreviewTask)">
-              [OPEN FULL MISSION DOSSIER &gt;&gt;]
+              [OPEN FULL DETAILS &gt;&gt;]
             </button>
           </div>
         </div>
 
         <div v-else class="empty-inspector">
-          <span class="empty-prompt">HOVER OVER OR SELECT A TASK TO ENGAGE LIVE TELEMETRY SENSOR</span>
+          <span class="empty-prompt">Select or hover over a task to view details</span>
         </div>
       </aside>
     </div>
@@ -318,7 +318,7 @@ async function handleCreateTask() {
   if (!newTask.value.title.trim()) return;
   try {
     const created = await createTask({ ...newTask.value });
-    emit('notify', `Tactical brief "${newTask.value.title}" successfully dispatched.`, 'success');
+    emit('notify', `Task "${newTask.value.title}" created successfully.`, 'success');
     selectTask(created);
     newTask.value = {
       title: '',
@@ -329,7 +329,7 @@ async function handleCreateTask() {
     };
     showCreateForm.value = false;
   } catch (err) {
-    emit('notify', `Dispatch failed: ${err.message}`, 'error');
+    emit('notify', `Failed to create task: ${err.message}`, 'error');
   }
 }
 </script>

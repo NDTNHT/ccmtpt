@@ -1,9 +1,9 @@
 import { reactive, computed } from 'vue';
 import { apiService } from '../services/apiService.js';
 
-const DEFAULT_SYSTEM_PROMPT = `YOU ARE AN INDUSTRIAL AI OPERATIONS ADVISOR RUNNING ON A MISSION-CRITICAL TERMINAL.
-YOUR ROLE IS TO DECOMPOSE COMPLEX TASKS INTO RIGOROUS, ACTIONABLE CHECKLISTS, ESTIMATE REALISTIC DEADLINES BASED ON HISTORICAL INDUSTRIAL VELOCITY, SUGGEST CRITICAL TECHNICAL SUBTASKS, AND AUTO-PRIORITIZE OPERATIONAL WORK PACKAGES.
-BE CONCISE, SYSTEM-LEVEL, AND EMPHASIZE REPEATABLE QUALITY METRICS.`;
+const DEFAULT_SYSTEM_PROMPT = `You are an AI Task Management Assistant.
+Your role is to decompose complex tasks into clear, actionable subtasks, estimate realistic completion dates, suggest helpful implementation steps, and recommend priorities based on project impact.
+Be concise, clear, and professional.`;
 
 const state = reactive({
   config: {
@@ -43,11 +43,11 @@ const state = reactive({
     },
     {
       id: 'simulated',
-      name: 'Tactical Offline Simulator',
+      name: 'Offline Task Simulator',
       protocol: 'OPENAI',
       baseUrl: 'http://localhost:8081/v1',
-      defaultModel: 'tactical-synthetic-v1',
-      availableModels: ['tactical-synthetic-v1', 'deterministic-evaluator'],
+      defaultModel: 'task-evaluator-v1',
+      availableModels: ['task-evaluator-v1', 'deterministic-evaluator'],
       active: false
     }
   ],
@@ -58,7 +58,7 @@ const state = reactive({
       timestamp: new Date().toLocaleTimeString(),
       type: 'INIT',
       status: 'SUCCESS',
-      message: 'TACTICAL AI CO-PILOT SUBSYSTEM ONLINE. TELEMETRY STREAM ACTIVE.'
+      message: 'AI Task Assistant initialized and ready.'
     }
   ],
   verification: {
@@ -68,7 +68,7 @@ const state = reactive({
     discoveredModelsList: [],
     lastChecked: null,
     latencyMs: 0,
-    message: 'NO API KEY CONFIGURED. ENTER API KEY & VERIFY HANDSHAKE.'
+    message: 'No API key configured. Enter API key to test connection.'
   },
   executingAiOp: false,
   activeAiResult: null

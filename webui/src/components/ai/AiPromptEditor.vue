@@ -2,8 +2,8 @@
   <div class="ai-prompt-editor">
     <div class="panel-header">
       <div class="header-tag">
-        <span class="ascii-badge text-alert">[NEURAL CFG]</span>
-        <h3 class="panel-title">AI ENGINE GATEWAY &amp; SYSTEM PROMPT DIRECTIVE</h3>
+        <span class="ascii-badge text-alert">[AI CONFIG]</span>
+        <h3 class="panel-title">AI PROVIDER SETTINGS &amp; SYSTEM PROMPT</h3>
       </div>
       <span class="panel-protocol">PROTOCOL: {{ activeProvider.protocol }}</span>
     </div>
@@ -11,7 +11,7 @@
     <div class="panel-body">
       <!-- Active Provider Selection Bar -->
       <div class="provider-selector-section">
-        <span class="section-lbl">/// ACTIVE NEURAL PROVIDER:</span>
+        <span class="section-lbl">/// ACTIVE AI PROVIDER:</span>
         <div class="provider-chips">
           <button
             v-for="p in state.providers"
@@ -30,11 +30,11 @@
       <!-- Provider Verification & Test Key Section -->
       <div class="verification-box">
         <div class="verify-header">
-          <span class="verify-lbl">/// PROVIDER ENDPOINT &amp; AUTHENTICATION VERIFIER</span>
+          <span class="verify-lbl">/// PROVIDER ENDPOINT &amp; API KEY</span>
           <span v-if="state.verification.valid" class="ascii-badge badge-green">
             [VERIFIED: {{ state.verification.discoveredModels }} MODELS // {{ state.verification.latencyMs }}ms]
           </span>
-          <span v-else class="ascii-badge badge-dim">[AWAITING API KEY &amp; VERIFICATION]</span>
+          <span v-else class="ascii-badge badge-dim">[AWAITING API KEY]</span>
         </div>
 
         <div class="verify-form">
@@ -74,7 +74,7 @@
               :disabled="state.verification.loading"
               @click="handleVerify"
             >
-              {{ state.verification.loading ? '[VERIFYING HANDSHAKE...]' : '[TEST KEY & DISCOVER MODELS]' }}
+              {{ state.verification.loading ? '[TESTING CONNECTION...]' : '[TEST KEY & FETCH MODELS]' }}
             </button>
             <span class="verify-msg">{{ state.verification.message }}</span>
           </div>
@@ -85,12 +85,12 @@
       <div class="model-selector-box">
         <div class="model-selector-header">
           <div class="header-left">
-            <span class="section-lbl">/// ACTIVE INFERENCE MODEL SELECTOR:</span>
+            <span class="section-lbl">/// MODEL SELECTION:</span>
             <span class="ascii-badge badge-green" v-if="state.verification.valid">
-              [{{ state.verification.discoveredModelsCount || availableModels.length }} MODELS DISCOVERED]
+              [{{ state.verification.discoveredModelsCount || availableModels.length }} MODELS AVAILABLE]
             </span>
             <span class="ascii-badge badge-dim" v-else>
-              [DEFAULT PRESETS]
+              [PRESET MODELS]
             </span>
           </div>
           <span class="current-model-tag">
@@ -143,12 +143,12 @@
       <div class="prompt-section">
         <div class="prompt-header">
           <div class="prompt-title-group">
-            <span class="section-lbl">/// CONFIGURABLE SYSTEM PROMPT (WRITE-IN DIRECTIVE):</span>
+            <span class="section-lbl">/// SYSTEM PROMPT INSTRUCTIONS:</span>
             <span class="prompt-char-count">{{ localPrompt.length }} CHARS</span>
           </div>
           <div class="prompt-btn-group">
-            <button class="tactical-btn-xs" @click="handleResetPrompt">[RESTORE DEFAULT]</button>
-            <button class="tactical-btn-xs text-amber" @click="handleSavePrompt">[APPLY PROMPT]</button>
+            <button class="tactical-btn-xs" @click="handleResetPrompt">[RESET DEFAULT]</button>
+            <button class="tactical-btn-xs text-amber" @click="handleSavePrompt">[SAVE PROMPT]</button>
           </div>
         </div>
 
@@ -156,10 +156,10 @@
           v-model="localPrompt"
           class="prompt-textarea"
           rows="6"
-          placeholder="ENTER SYSTEM-LEVEL CONSTRAINTS, DOMAIN TERMINOLOGY, OR HEURISTICS FOR THE AI TASK ASSISTANT..."
+          placeholder="Enter system-level guidelines, domain rules, or formatting preferences for the AI assistant..."
         ></textarea>
         <span class="prompt-hint">
-          * Directives in this buffer are injected into all subtask decomposition, deadline estimation, and priority evaluation routines.
+          * These instructions guide all subtask breakdowns, due date estimates, and priority evaluations.
         </span>
       </div>
     </div>

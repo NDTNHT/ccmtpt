@@ -7,19 +7,19 @@
     <div class="ai-workbench">
       <div class="workbench-header">
         <div class="header-tag">
-          <span class="ascii-badge text-alert">[EXECUTION WORKBENCH]</span>
-          <h3 class="workbench-title">MISSION-CRITICAL TASK ANALYSIS DISPATCH</h3>
+          <span class="ascii-badge text-alert">[WORKBENCH]</span>
+          <h3 class="workbench-title">AI TASK ASSISTANT &amp; AUTOMATION</h3>
         </div>
         <span class="workbench-status" v-if="aiState.executingAiOp">
           <span class="status-led amber"></span>
-          [AI STREAM PROCESSING...]
+          [AI PROCESSING...]
         </span>
       </div>
 
       <div class="workbench-body">
         <!-- Target Task Selection Bar -->
         <div class="target-task-bar">
-          <span class="target-lbl">SELECT TARGET MISSION:</span>
+          <span class="target-lbl">SELECT TARGET TASK:</span>
           <select v-model="selectedTaskId" class="target-task-select">
             <option v-for="t in taskState.tasks" :key="t.id" :value="t.id">
               [{{ t.id }}] {{ t.title }} ({{ t.status }} / {{ t.priority }})
@@ -31,7 +31,7 @@
             :disabled="!selectedTask || aiState.executingAiOp"
             @click="handleRunFullAudit"
           >
-            [EXECUTE FULL AI MISSION AUDIT]
+            [RUN FULL AI ANALYSIS]
           </button>
         </div>
 
@@ -43,8 +43,8 @@
             @click="handleDecompose"
           >
             <span class="op-num">01//</span>
-            <span class="op-name">DECOMPOSE CHECKLIST</span>
-            <span class="op-desc">Bóc tách công việc thành các subtasks nhỏ</span>
+            <span class="op-name">BREAK DOWN SUBTASKS</span>
+            <span class="op-desc">Generate actionable subtasks from requirements</span>
           </button>
 
           <button
@@ -53,8 +53,8 @@
             @click="handleEstimate"
           >
             <span class="op-num">02//</span>
-            <span class="op-name">ESTIMATE DEADLINE</span>
-            <span class="op-desc">Dự toán thời hạn hoàn thành tối ưu</span>
+            <span class="op-name">ESTIMATE DUE DATE</span>
+            <span class="op-desc">Predict optimal completion timeline and effort</span>
           </button>
 
           <button
@@ -63,8 +63,8 @@
             @click="handlePriority"
           >
             <span class="op-num">03//</span>
-            <span class="op-name">AUTO-PRIORITIZATION</span>
-            <span class="op-desc">Đánh giá và đề xuất độ ưu tiên dựa trên rủi ro</span>
+            <span class="op-name">SUGGEST PRIORITY</span>
+            <span class="op-desc">Analyze risk and recommend urgency level</span>
           </button>
 
           <button
@@ -74,7 +74,7 @@
           >
             <span class="op-num">04//</span>
             <span class="op-name">TASK SUMMARY</span>
-            <span class="op-desc">Tạo tóm tắt ngắn gọn báo cáo tiến độ</span>
+            <span class="op-desc">Generate a clean progress overview</span>
           </button>
         </div>
 
@@ -82,8 +82,8 @@
         <div v-if="aiState.activeAiResult" class="ai-result-panel">
           <div class="result-header">
             <div class="result-tag">
-              <span class="ascii-badge badge-green">[TELEMETRY PAYLOAD BOUND]</span>
-              <span class="result-type">OPERATION: {{ aiState.activeAiResult.type }}</span>
+              <span class="ascii-badge badge-green">[AI RESULT READY]</span>
+              <span class="result-type">ACTION: {{ aiState.activeAiResult.type }}</span>
             </div>
             <span class="result-timestamp">{{ aiState.activeAiResult.timestamp }}</span>
           </div>
@@ -91,30 +91,30 @@
           <div class="result-content">
             <!-- Decomposition Payload -->
             <div v-if="aiState.activeAiResult.type === 'DECOMPOSE' || aiState.activeAiResult.type === 'SUGGEST_SUBTASKS'" class="payload-block">
-              <div class="payload-sub-title">GENERATED CHECKLIST SUBTASKS:</div>
+              <div class="payload-sub-title">SUGGESTED SUBTASKS:</div>
               <ul class="payload-list">
                 <li v-for="(item, idx) in aiState.activeAiResult.data.subTasks" :key="idx">
                   [ ] {{ item }}
                 </li>
               </ul>
               <button class="tactical-btn-apply" @click="applyDecompositionResult">
-                [COMMIT CHECKLIST TO TASK]
+                [APPLY SUBTASKS TO TASK]
               </button>
             </div>
 
             <!-- Deadline Payload -->
             <div v-else-if="aiState.activeAiResult.type === 'ESTIMATE_DEADLINE'" class="payload-block">
               <div class="payload-metric-line">
-                <span class="metric-lbl">ESTIMATED DEADLINE:</span>
+                <span class="metric-lbl">ESTIMATED DUE DATE:</span>
                 <span class="metric-val text-amber">{{ aiState.activeAiResult.data.recommendedDeadline }}</span>
               </div>
               <div class="payload-metric-line">
-                <span class="metric-lbl">HOURS CALCULATION:</span>
+                <span class="metric-lbl">ESTIMATED EFFORT:</span>
                 <span class="metric-val">{{ aiState.activeAiResult.data.estimatedHours }}h (Confidence: {{ Math.round(aiState.activeAiResult.data.confidenceScore * 100) }}%)</span>
               </div>
               <p class="payload-reasoning">{{ aiState.activeAiResult.data.reasoning }}</p>
               <button class="tactical-btn-apply" @click="applyDeadlineResult">
-                [APPLY DEADLINE TO TASK]
+                [APPLY DUE DATE TO TASK]
               </button>
             </div>
 
@@ -125,21 +125,21 @@
                 <span class="metric-val text-alert">[{{ aiState.activeAiResult.data.recommendedPriority }}]</span>
               </div>
               <div class="payload-metric-line">
-                <span class="metric-lbl">URGENCY / IMPACT SCORES:</span>
+                <span class="metric-lbl">URGENCY &amp; IMPACT:</span>
                 <span class="metric-val">{{ aiState.activeAiResult.data.urgencyScore }}/100 | {{ aiState.activeAiResult.data.impactScore }}/100</span>
               </div>
               <p class="payload-reasoning">{{ aiState.activeAiResult.data.reasoning }}</p>
               <button class="tactical-btn-apply" @click="applyPriorityResult">
-                [UPDATE TASK PRIORITY LEVEL]
+                [APPLY PRIORITY TO TASK]
               </button>
             </div>
 
             <!-- Summary Payload -->
             <div v-else-if="aiState.activeAiResult.type === 'SUMMARY'" class="payload-block">
-              <div class="payload-sub-title">EXECUTIVE BRIEF SUMMARY:</div>
+              <div class="payload-sub-title">TASK SUMMARY:</div>
               <p class="summary-paragraph">{{ aiState.activeAiResult.data.summary }}</p>
               <button class="tactical-btn-apply" @click="applySummaryResult">
-                [SAVE SUMMARY TO TASK DOSSIER]
+                [SAVE SUMMARY TO TASK]
               </button>
             </div>
 
@@ -147,9 +147,9 @@
             <div v-else-if="aiState.activeAiResult.type === 'FULL_ANALYSIS'" class="payload-block">
               <div class="full-analysis-summary">
                 <p><strong>SUMMARY:</strong> {{ aiState.activeAiResult.data.summary?.summary }}</p>
-                <p><strong>RECOMMENDED DEADLINE:</strong> {{ aiState.activeAiResult.data.deadlineEstimation?.recommendedDeadline }}</p>
+                <p><strong>RECOMMENDED DUE DATE:</strong> {{ aiState.activeAiResult.data.deadlineEstimation?.recommendedDeadline }}</p>
                 <p><strong>RECOMMENDED PRIORITY:</strong> [{{ aiState.activeAiResult.data.priorityRecommendation?.recommendedPriority }}]</p>
-                <div class="payload-sub-title">GENERATED CHECKLIST:</div>
+                <div class="payload-sub-title">SUGGESTED SUBTASKS:</div>
                 <ul class="payload-list">
                   <li v-for="(item, idx) in aiState.activeAiResult.data.decomposition?.subTasks || []" :key="idx">
                     [ ] {{ item }}
@@ -157,7 +157,7 @@
                 </ul>
               </div>
               <button class="tactical-btn-apply" @click="applyFullAuditResult">
-                [COMMIT ALL AUDIT RECOMMENDATIONS TO TASK]
+                [APPLY ALL RECOMMENDATIONS]
               </button>
             </div>
           </div>
@@ -234,7 +234,7 @@ async function handleSummary() {
   if (!selectedTask.value) return;
   try {
     await generateSummary(selectedTask.value.id);
-    emit('notify', 'Summary synthesized.', 'success');
+    emit('notify', 'Task summary generated.', 'success');
   } catch (err) {
     emit('notify', err.message, 'error');
   }
@@ -244,7 +244,7 @@ async function handleRunFullAudit() {
   if (!selectedTask.value) return;
   try {
     await runFullAnalysis(selectedTask.value.id, selectedTask.value.title);
-    emit('notify', 'Full AI audit pipeline executed.', 'success');
+    emit('notify', 'Full AI analysis completed.', 'success');
   } catch (err) {
     emit('notify', err.message, 'error');
   }
@@ -254,7 +254,7 @@ function applyDecompositionResult() {
   const res = aiState.activeAiResult;
   if (res?.data?.subTasks && selectedTask.value) {
     addSubTasks(selectedTask.value.id, res.data.subTasks);
-    emit('notify', 'Subtasks applied to task checklist.', 'success');
+    emit('notify', 'Subtasks applied to task.', 'success');
   }
 }
 
@@ -262,7 +262,7 @@ function applyDeadlineResult() {
   const res = aiState.activeAiResult;
   if (res?.data?.recommendedDeadline && selectedTask.value) {
     updateTaskInState(selectedTask.value.id, { dueDate: res.data.recommendedDeadline });
-    emit('notify', `Task deadline updated to ${res.data.recommendedDeadline}.`, 'success');
+    emit('notify', `Due date updated to ${res.data.recommendedDeadline}.`, 'success');
   }
 }
 
@@ -270,7 +270,7 @@ function applyPriorityResult() {
   const res = aiState.activeAiResult;
   if (res?.data?.recommendedPriority && selectedTask.value) {
     updateTaskInState(selectedTask.value.id, { priority: res.data.recommendedPriority });
-    emit('notify', `Task priority shifted to [${res.data.recommendedPriority}].`, 'success');
+    emit('notify', `Priority updated to [${res.data.recommendedPriority}].`, 'success');
   }
 }
 
@@ -278,7 +278,7 @@ function applySummaryResult() {
   const res = aiState.activeAiResult;
   if (res?.data?.summary && selectedTask.value) {
     updateTaskInState(selectedTask.value.id, { aiSummary: res.data.summary });
-    emit('notify', 'AI summary attached to task.', 'success');
+    emit('notify', 'Summary saved to task.', 'success');
   }
 }
 
@@ -301,7 +301,7 @@ function applyFullAuditResult() {
   if (res.data.decomposition?.subTasks) {
     addSubTasks(selectedTask.value.id, res.data.decomposition.subTasks);
   }
-  emit('notify', 'All audit checkpoints applied to mission package.', 'success');
+  emit('notify', 'All AI recommendations applied to task.', 'success');
 }
 </script>
 

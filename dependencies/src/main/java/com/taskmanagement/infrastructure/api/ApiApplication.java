@@ -10,10 +10,13 @@ import com.taskmanagement.application.control.ProjectControl;
 import com.taskmanagement.application.control.TaskControl;
 import com.taskmanagement.application.port.AiAssistantPort;
 import com.taskmanagement.application.port.DomainEventDispatcher;
+import com.taskmanagement.domain.project.entity.Project;
+import com.taskmanagement.domain.project.enums.ProjectType;
 import com.taskmanagement.domain.project.repository.ProjectRepository;
 import com.taskmanagement.domain.task.repository.TaskRepository;
 import com.taskmanagement.infrastructure.event.InMemoryDomainEventDispatcher;
 import com.taskmanagement.infrastructure.listener.TaskActivityLogger;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -60,6 +63,20 @@ public class ApiApplication {
     @Bean
     ProjectControl projectControl(ProjectRepository projectRepository) {
         return new ProjectControl(projectRepository);
+    }
+
+    @Bean
+    CommandLineRunner initDefaultRegularProjects(ProjectRepository projectRepository) {
+        return args -> {
+            boolean hasRegular = projectRepository.findAll().stream()
+                .anyMatch(p -> p.getProjectType() == ProjectType.REGULAR);
+            if (!hasRegular) {
+                projectRepository.save(Project.create(
+                    "ALPHA CORE SYSTEMS", "Primary engineering and tactical infrastructure"));
+                projectRepository.save(Project.create(
+                    "OMEGA CYBERNETICS", "Autonomous robotics and hardware relays"));
+            }
+        };
     }
 
     @Bean

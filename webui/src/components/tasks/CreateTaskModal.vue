@@ -63,21 +63,81 @@
           </div>
 
           <!-- Project Sector Selector -->
-          <div class="form-section">
-            <label class="form-label">
-              <span class="label-prefix">&gt;&gt;</span>
-              TARGET PROJECT / SECTOR
-            </label>
-            <select v-model="form.projectId" class="tactical-select">
-              <option :value="null">-- DEFAULT INBOX DIRECTORY --</option>
-              <option
-                v-for="project in projectList"
-                :key="project.id"
-                :value="project.id"
+          <div class="form-section project-section">
+            <div class="section-label-row">
+              <label class="form-label">
+                <span class="label-prefix">&gt;&gt;</span>
+                TARGET PROJECT / SECTOR
+              </label>
+              <button
+                type="button"
+                class="new-project-toggle-btn"
+                @click="showNewProjectForm = !showNewProjectForm"
               >
-                [{{ project.name }}] - {{ project.type }}
-              </option>
+                {{ showNewProjectForm ? '[-] CANCEL' : '[+ NEW REGULAR SECTOR]' }}
+              </button>
+            </div>
+
+            <!-- Inline Regular Project Creation Box -->
+            <div v-if="showNewProjectForm" class="new-project-inline-box">
+              <div class="new-project-row">
+                <input
+                  v-model="newProjectName"
+                  type="text"
+                  class="tactical-input new-project-input"
+                  placeholder="NEW REGULAR PROJECT (E.G. OMEGA CLUSTER)..."
+                  maxlength="100"
+                  @keydown.enter.prevent="handleCreateRegularProject"
+                />
+                <button
+                  type="button"
+                  class="tactical-btn-sm btn-create-proj"
+                  :disabled="!newProjectName.trim() || newProjectLoading"
+                  @click="handleCreateRegularProject"
+                >
+                  {{ newProjectLoading ? '[...]' : '[+ CREATE REGULAR]' }}
+                </button>
+              </div>
+              <span class="new-project-note">
+                [DOMAIN AGGREGATE // TYPE = REGULAR]
+              </span>
+            </div>
+
+            <select v-model="form.projectId" class="tactical-select project-select">
+              <optgroup label="── REGULAR MISSION SECTORS (STRUCTURED) ──">
+                <option
+                  v-for="project in regularProjects"
+                  :key="project.id"
+                  :value="project.id"
+                >
+                  [{{ project.name }}] // REGULAR PROJECT
+                </option>
+                <option v-if="regularProjects.length === 0" disabled value="">
+                  (NO REGULAR PROJECTS RECORDED — CLICK [+ NEW REGULAR SECTOR])
+                </option>
+              </optgroup>
+              <optgroup label="── INBOX QUEUE (TRIAGE) ──">
+                <option :value="inboxProject?.id || null">
+                  [{{ inboxProject ? inboxProject.name : 'INBOX' }}] // DEFAULT TRIAGE QUEUE
+                </option>
+              </optgroup>
             </select>
+
+            <!-- Project Type Indicator Badge -->
+            <div class="project-type-indicator">
+              <span
+                class="type-badge"
+                :class="selectedProjectType === 'REGULAR' ? 'badge-regular' : 'badge-inbox'"
+              >
+                SECTOR TYPE: [{{ selectedProjectType }}]
+              </span>
+              <span class="type-hint" v-if="selectedProjectType === 'REGULAR'">
+                ✓ Classified under structured domain project (Regular)
+              </span>
+              <span class="type-hint" v-else>
+                ○ Default inbox for unclassified missions
+              </span>
+            </div>
           </div>
         </div>
 
@@ -261,6 +321,25 @@ const titleInputRef = ref(null);
 const isSubmitting = ref(false);
 const newSubTaskTitle = ref('');
 const projectList = ref([]);
+const showNewProjectForm = ref(false);
+const newProjectName = ref('');
+const newProjectLoading = ref(false);
+
+const inboxProject = computed(() => {
+  return projectList.value.find(p => p.type === 'INBOX') || null;
+});
+
+const regularProjects = computed(() => {
+  return projectList.value.filter(p => p.type === 'REGULAR');
+});
+
+const selectedProject = computed(() => {
+  return projectList.value.find(p => p.id === form.projectId) || null;
+});
+
+const selectedProjectType = computed(() => {
+  return selectedProject.value ? selectedProject.value.type : 'INBOX';
+});
 
 const priorityOptions = [
   { value: 'LOW', label: 'LOW' },
@@ -304,12 +383,35 @@ async function loadProjects() {
     const data = await apiService.getProjects();
     if (Array.isArray(data)) {
       projectList.value = data;
-      if (data.length > 0 && !form.projectId) {
-        form.projectId = data[0].id;
+      // Default to the first REGULAR project if available, or first available project
+      if (!form.projectId || !data.some(p => p.id === form.projectId)) {
+        const firstRegular = data.find(p => p.type === 'REGULAR');
+        form.projectId = firstRegular ? firstRegular.id : (data[0] ? data[0].id : null);
       }
     }
   } catch (err) {
     console.warn('Projects endpoint unreachable, using default inbox:', err.message);
+  }
+}
+
+async function handleCreateRegularProject() {
+  const name = newProjectName.value.trim();
+  if (!name) return;
+  newProjectLoading.value = true;
+  try {
+    const created = await apiService.createProject({
+      name: name.toUpperCase(),
+      description: `Tactical regular mission sector`
+    });
+    await loadProjects();
+    form.projectId = created.id;
+    showNewProjectForm.value = false;
+    newProjectName.value = '';
+    emit('notify', `Regular Sector "${created.name}" registered and assigned.`, 'success');
+  } catch (err) {
+    emit('notify', `Failed to create regular project: ${err.message}`, 'error');
+  } finally {
+    newProjectLoading.value = false;
   }
 }
 
@@ -620,6 +722,117 @@ async function handleSubmit() {
 .tactical-date-input:focus {
   border-color: var(--color-neon-amber);
   box-shadow: 0 0 8px rgba(255, 184, 0, 0.2);
+}
+
+/* Project Sector & Regular Selector */
+.project-section {
+  position: relative;
+}
+
+.new-project-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--color-neon-amber);
+  color: var(--color-neon-amber);
+  font-family: var(--font-mono-code);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.new-project-toggle-btn:hover {
+  background: var(--color-neon-amber);
+  color: #000000;
+}
+
+.new-project-inline-box {
+  background: #141414;
+  border: 1px dashed var(--color-neon-amber);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.new-project-row {
+  display: flex;
+  gap: 6px;
+}
+
+.new-project-input {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.btn-create-proj {
+  background: var(--color-neon-amber);
+  color: #000000;
+  border-color: var(--color-neon-amber);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.btn-create-proj:hover:not(:disabled) {
+  background: #FFCA28;
+  color: #000000;
+}
+
+.new-project-note {
+  font-size: 0.65rem;
+  color: #888888;
+  letter-spacing: 0.05em;
+}
+
+.project-select optgroup {
+  background: #181818;
+  color: var(--color-neon-amber);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 4px;
+}
+
+.project-select option {
+  background: #0D0D0D;
+  color: #EEEEEE;
+  font-size: 0.82rem;
+  padding: 4px;
+}
+
+.project-type-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.type-badge {
+  font-weight: 700;
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  letter-spacing: 0.05em;
+}
+
+.badge-regular {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid #00E5FF;
+  color: #00E5FF;
+}
+
+.badge-inbox {
+  background: rgba(255, 184, 0, 0.12);
+  border: 1px solid var(--color-neon-amber);
+  color: var(--color-neon-amber);
+}
+
+.type-hint {
+  color: #888888;
+  font-size: 0.68rem;
 }
 
 .title-input {

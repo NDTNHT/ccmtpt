@@ -27,6 +27,20 @@
     <!-- Main Workspace Split: Controls + Grid vs Real-time Telemetry Inspector -->
     <div class="workspace-grid">
       <div class="board-column">
+        <!-- Action & Mission Dispatch Bar -->
+        <div class="mission-action-bar">
+          <div class="action-bar-label">
+            <span class="ascii-badge text-alert">[MISSION LOG MATRIX]</span>
+            <span class="matrix-status">{{ filteredTasks.length }} MISSIONS DISPLAYED</span>
+          </div>
+          <button class="primary-dispatch-btn" @click="isCreateModalOpen = true">
+            <span class="dispatch-bracket">┌</span>
+            <span class="dispatch-plus">+</span>
+            <span class="dispatch-label">DISPATCH NEW MISSION BRIEF</span>
+            <span class="dispatch-bracket">┘</span>
+          </button>
+        </div>
+
         <!-- Filter and Search Toolbar -->
         <div class="tactical-toolbar">
           <div class="search-box">
@@ -67,14 +81,23 @@
           </div>
         </div>
 
-        <!-- Task Creation Drawer Trigger / Quick Form -->
+        <!-- Task Creation Quick Bar / Drawer -->
         <div class="creation-banner">
           <div class="banner-header" @click="showCreateForm = !showCreateForm">
             <div class="header-left">
               <span class="ascii-badge text-alert">[+]</span>
-              <span class="banner-title">DISPATCH NEW TACTICAL TASK BRIEF</span>
+              <span class="banner-title">QUICK INLINE DISPATCH FORM</span>
             </div>
-            <span class="toggle-icon">{{ showCreateForm ? '[-] COLLAPSE' : '[+] EXPAND' }}</span>
+            <div class="header-right">
+              <button
+                type="button"
+                class="open-modal-link-btn"
+                @click.stop="isCreateModalOpen = true"
+              >
+                [FULL MISSION DIALOG ↗]
+              </button>
+              <span class="toggle-icon">{{ showCreateForm ? '[-] COLLAPSE' : '[+] EXPAND' }}</span>
+            </div>
           </div>
 
           <form v-if="showCreateForm" class="create-task-form" @submit.prevent="handleCreateTask">
@@ -217,6 +240,14 @@
       @cancel-task="cancelTask"
       @notify="$emit('notify', $event)"
     />
+
+    <!-- Dedicated Create Task Modal -->
+    <CreateTaskModal
+      :isOpen="isCreateModalOpen"
+      @close="isCreateModalOpen = false"
+      @created="handleTaskCreated"
+      @notify="(msg, type) => $emit('notify', msg, type)"
+    />
   </div>
 </template>
 
@@ -225,6 +256,7 @@ import { ref, computed } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
 import TaskCard from './TaskCard.vue';
 import TaskDetailModal from './TaskDetailModal.vue';
+import CreateTaskModal from './CreateTaskModal.vue';
 
 const emit = defineEmits(['notify']);
 
@@ -247,13 +279,14 @@ const priorityOptions = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 const showCreateForm = ref(false);
 const isModalOpen = ref(false);
+const isCreateModalOpen = ref(false);
 
 const newTask = ref({
   title: '',
   description: '',
   priority: 'HIGH',
   dueDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-  projectId: 'proj-omega-01'
+  projectId: null
 });
 
 const activePreviewTask = computed(() => {
@@ -277,17 +310,22 @@ function openModalForTask(task) {
   isModalOpen.value = true;
 }
 
+function handleTaskCreated(task) {
+  selectTask(task);
+}
+
 async function handleCreateTask() {
   if (!newTask.value.title.trim()) return;
   try {
-    await createTask({ ...newTask.value });
+    const created = await createTask({ ...newTask.value });
     emit('notify', `Tactical brief "${newTask.value.title}" successfully dispatched.`, 'success');
+    selectTask(created);
     newTask.value = {
       title: '',
       description: '',
       priority: 'HIGH',
       dueDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-      projectId: 'proj-omega-01'
+      projectId: null
     };
     showCreateForm.value = false;
   } catch (err) {
@@ -348,6 +386,67 @@ async function handleCreateTask() {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Mission Action & Dispatch Bar */
+.mission-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-neon-amber);
+  padding: 10px 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.matrix-status {
+  font-size: 0.72rem;
+  color: var(--color-text-dim);
+  letter-spacing: 0.05em;
+}
+
+.primary-dispatch-btn {
+  background: var(--color-neon-amber);
+  border: 1px solid var(--color-neon-amber);
+  color: #000000;
+  font-family: var(--font-mono-code);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 7px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.primary-dispatch-btn:hover {
+  background: #FFCA28;
+  box-shadow: 0 0 12px rgba(255, 184, 0, 0.45);
+  transform: translateY(-1px);
+}
+
+.primary-dispatch-btn:active {
+  transform: translateY(0);
+}
+
+.dispatch-bracket {
+  color: #222222;
+  font-weight: bold;
+}
+
+.dispatch-plus {
+  font-weight: 900;
 }
 
 .tactical-toolbar {
@@ -447,6 +546,29 @@ async function handleCreateTask() {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--color-text-main);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.open-modal-link-btn {
+  background: transparent;
+  border: 1px solid var(--color-neon-amber);
+  color: var(--color-neon-amber);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.open-modal-link-btn:hover {
+  background: var(--color-neon-amber);
+  color: #000000;
 }
 
 .toggle-icon {

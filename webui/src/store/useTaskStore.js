@@ -88,7 +88,11 @@ export function useTaskStore() {
       if (Array.isArray(data) && data.length > 0) {
         state.tasks = data.map((t) => ({
           ...t,
-          subTasks: t.subTasks || []
+          id: (t.taskId || t.id || `task-${Date.now()}`).toString(),
+          subTasks: (t.subTasks || []).map((st, idx) => ({
+            ...st,
+            id: (st.subTaskId || st.id || `st-${idx}`).toString()
+          }))
         }));
       }
     } catch (err) {
@@ -102,24 +106,71 @@ export function useTaskStore() {
   async function createTask(payload) {
     state.loading = true;
     try {
+      const sanitizedTitle = (payload.title || '').trim();
+      const sanitizedDescription = (payload.description || '').trim();
+      
+      let formattedDueDate = null;
+      if (payload.dueDate) {
+        try {
+          const d = new Date(payload.dueDate);
+          if (!isNaN(d.getTime())) {
+            formattedDueDate = d.toISOString();
+          }
+        } catch (e) {
+          console.warn('Invalid dueDate format:', payload.dueDate);
+        }
+      }
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const validProjectId = (payload.projectId && uuidRegex.test(payload.projectId)) 
+        ? payload.projectId 
+        : null;
+
+      const apiPayload = {
+        title: sanitizedTitle,
+        description: sanitizedDescription,
+        priority: payload.priority || 'MEDIUM',
+        dueDate: formattedDueDate,
+        projectId: validProjectId
+      };
+
       let createdTask;
       try {
-        createdTask = await apiService.createTask(payload);
+        createdTask = await apiService.createTask(apiPayload);
       } catch (err) {
         console.warn('Simulating task creation locally:', err.message);
         createdTask = {
-          id: `task-local-${Date.now().toString().slice(-4)}`,
-          title: payload.title.toUpperCase(),
-          description: payload.description || 'MANUALLY DISPATCHED MISSION BRIEF',
+          taskId: `task-local-${Date.now().toString().slice(-4)}`,
+          title: sanitizedTitle.toUpperCase(),
+          description: sanitizedDescription || 'MANUALLY DISPATCHED MISSION BRIEF',
           status: 'TODO',
           priority: payload.priority || 'MEDIUM',
-          dueDate: payload.dueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-          projectId: payload.projectId || 'proj-omega-01',
+          dueDate: formattedDueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
+          projectId: validProjectId || 'proj-omega-01',
           subTasks: []
         };
       }
-      state.tasks.unshift(createdTask);
-      return createdTask;
+
+      const normalized = {
+        ...createdTask,
+        id: (createdTask.taskId || createdTask.id).toString(),
+        subTasks: (payload.subTasks && payload.subTasks.length > 0)
+          ? payload.subTasks.map((st, i) => {
+              if (typeof st === 'string') {
+                return { id: `st-${Date.now()}-${i}`, title: st, completed: false };
+              }
+              return {
+                id: (st.subTaskId || st.id || `st-${Date.now()}-${i}`).toString(),
+                title: st.title || 'CHECKPOINT',
+                completed: !!st.completed
+              };
+            })
+          : (createdTask.subTasks || [])
+      };
+
+      state.tasks.unshift(normalized);
+      state.selectedTask = normalized;
+      return normalized;
     } finally {
       state.loading = false;
     }

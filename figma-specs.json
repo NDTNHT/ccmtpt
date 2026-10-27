@@ -1,0 +1,172 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "name": "TaskCommerce Pro Figma Design Tokens",
+  "version": "1.0.0",
+  "description": "Figma Dev Mode & Tokens Studio compatible specifications for High-End Vue 3 SPA",
+  "color": {
+    "primary": {
+      "value": "#059669",
+      "type": "color",
+      "description": "Emerald Green for primary actions and brand identity"
+    },
+    "secondary": {
+      "value": "#10B981",
+      "type": "color",
+      "description": "Mint Green for secondary highlights"
+    },
+    "accent": {
+      "value": "#EA580C",
+      "type": "color",
+      "description": "Urgency Orange for Sale badges and active highlights"
+    },
+    "background": {
+      "light": {
+        "value": "#F8FAFC",
+        "type": "color"
+      },
+      "dark": {
+        "value": "#050505",
+        "type": "color",
+        "description": "Deepest OLED black for Ethereal Glass aesthetic"
+      }
+    },
+    "surface": {
+      "light": {
+        "outerShell": { "value": "rgba(0, 0, 0, 0.04)", "type": "color" },
+        "innerCore": { "value": "#FFFFFF", "type": "color" }
+      },
+      "dark": {
+        "outerShell": { "value": "rgba(255, 255, 255, 0.05)", "type": "color" },
+        "innerCore": { "value": "#0C0C0C", "type": "color" }
+      }
+    },
+    "border": {
+      "light": { "value": "rgba(0, 0, 0, 0.08)", "type": "color" },
+      "dark": { "value": "rgba(255, 255, 255, 0.10)", "type": "color" }
+    },
+    "text": {
+      "primary": {
+        "light": { "value": "#0F172A", "type": "color" },
+        "dark": { "value": "#F8FAFC", "type": "color" }
+      },
+      "secondary": {
+        "light": { "value": "#64748B", "type": "color" },
+        "dark": { "value": "#94A3B8", "type": "color" }
+      },
+      "muted": {
+        "light": { "value": "#94A3B8", "type": "color" },
+        "dark": { "value": "#64748B", "type": "color" }
+      }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "heading": { "value": "Plus Jakarta Sans, sans-serif", "type": "fontFamilies" },
+      "body": { "value": "Nunito Sans, sans-serif", "type": "fontFamilies" }
+    },
+    "fontSize": {
+      "h1": { "value": "40px", "type": "fontSizes" },
+      "h2": { "value": "28px", "type": "fontSizes" },
+      "h3": { "value": "20px", "type": "fontSizes" },
+      "body": { "value": "15px", "type": "fontSizes" },
+      "caption": { "value": "13px", "type": "fontSizes" },
+      "eyebrow": { "value": "10px", "type": "fontSizes" }
+    },
+    "fontWeight": {
+      "regular": { "value": "400", "type": "fontWeights" },
+      "medium": { "value": "500", "type": "fontWeights" },
+      "semibold": { "value": "600", "type": "fontWeights" },
+      "bold": { "value": "700", "type": "fontWeights" }
+    },
+    "letterSpacing": {
+      "tight": { "value": "-0.02em", "type": "letterSpacing" },
+      "normal": { "value": "0em", "type": "letterSpacing" },
+      "wide": { "value": "0.15em", "type": "letterSpacing" }
+    }
+  },
+  "borderRadius": {
+    "doubleBezelOuter": {
+      "value": "32px",
+      "type": "borderRadius",
+      "description": "2rem outer hardware shell radius"
+    },
+    "doubleBezelInner": {
+      "value": "24px",
+      "type": "borderRadius",
+      "description": "Concentric curve radius (calc(2rem - 0.5rem))"
+    },
+    "pill": {
+      "value": "9999px",
+      "type": "borderRadius",
+      "description": "Full rounded CTA button and badge radius"
+    },
+    "card": {
+      "value": "16px",
+      "type": "borderRadius"
+    }
+  },
+  "boxShadow": {
+    "doubleBezelInnerHighlight": {
+      "value": "inset 0 1px 1px rgba(255, 255, 255, 0.15)",
+      "type": "boxShadow",
+      "description": "Machined glass specular reflection edge"
+    },
+    "floatingNav": {
+      "value": "0 20px 40px -15px rgba(0, 0, 0, 0.3)",
+      "type": "boxShadow"
+    },
+    "softAmbient": {
+      "value": "0 10px 30px -10px rgba(0, 0, 0, 0.08)",
+      "type": "boxShadow"
+    }
+  },
+  "motion": {
+    "fluidCurve": {
+      "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+      "type": "transitionTimingFunction",
+      "description": "Apple / Linear spring mass curve"
+    },
+    "durationFast": { "value": "200ms", "type": "duration" },
+    "durationNormal": { "value": "350ms", "type": "duration" },
+    "durationSlow": { "value": "700ms", "type": "duration" }
+  },
+  "figmaComponents": {
+    "Header": {
+      "layoutMode": "HORIZONTAL",
+      "primaryAxisAlignItems": "SPACE_BETWEEN",
+      "counterAxisAlignItems": "CENTER",
+      "paddingTop": 12,
+      "paddingBottom": 12,
+      "paddingLeft": 24,
+      "paddingRight": 24,
+      "cornerRadius": 9999,
+      "itemSpacing": 32,
+      "fills": [{ "type": "SOLID", "color": "#0C0C0C", "opacity": 0.85 }],
+      "effects": [{ "type": "BACKGROUND_BLUR", "radius": 24 }]
+    },
+    "ProductCard": {
+      "layoutMode": "VERTICAL",
+      "primaryAxisAlignItems": "MIN",
+      "counterAxisAlignItems": "STRETCH",
+      "paddingTop": 8,
+      "paddingBottom": 8,
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "cornerRadius": 32,
+      "fills": [{ "type": "SOLID", "color": "#FFFFFF", "opacity": 0.05 }],
+      "strokes": [{ "type": "SOLID", "color": "#FFFFFF", "opacity": 0.10 }]
+    },
+    "ButtonInButtonCTA": {
+      "layoutMode": "HORIZONTAL",
+      "primaryAxisAlignItems": "CENTER",
+      "counterAxisAlignItems": "CENTER",
+      "paddingTop": 6,
+      "paddingBottom": 6,
+      "paddingLeft": 16,
+      "paddingRight": 6,
+      "cornerRadius": 9999,
+      "itemSpacing": 12,
+      "fills": [{ "type": "SOLID", "color": "#0F172A" }]
+    }
+  }
+}

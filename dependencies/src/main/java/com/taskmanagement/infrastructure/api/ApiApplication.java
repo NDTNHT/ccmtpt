@@ -1,9 +1,14 @@
 package com.taskmanagement.infrastructure.api;
 
+import com.taskmanagement.adapter.ai.AiConfig;
+import com.taskmanagement.adapter.ai.CompositeAiAdapter;
 import com.taskmanagement.adapter.persistence.IOSaveToSQLite;
 import com.taskmanagement.adapter.persistence.IOSaveToSQLiteProject;
+import com.taskmanagement.application.boundary.AiTaskInputBoundary;
+import com.taskmanagement.application.control.AiTaskControl;
 import com.taskmanagement.application.control.ProjectControl;
 import com.taskmanagement.application.control.TaskControl;
+import com.taskmanagement.application.port.AiAssistantPort;
 import com.taskmanagement.application.port.DomainEventDispatcher;
 import com.taskmanagement.domain.project.repository.ProjectRepository;
 import com.taskmanagement.domain.task.repository.TaskRepository;
@@ -55,6 +60,36 @@ public class ApiApplication {
     @Bean
     ProjectControl projectControl(ProjectRepository projectRepository) {
         return new ProjectControl(projectRepository);
+    }
+
+    @Bean
+    AiConfig aiConfig(Environment environment) {
+        AiConfig config = new AiConfig();
+        config.setEnabled(environment.getProperty("ai.enabled", Boolean.class, true));
+        config.setProvider(environment.getProperty("ai.provider", "auto"));
+        config.setBaseUrl(environment.getProperty("ai.base-url", "https://api.openai.com/v1"));
+        config.setApiKey(environment.getProperty("ai.api-key", ""));
+        config.setModel(environment.getProperty("ai.model", "gpt-4o-mini"));
+        config.setTemperature(environment.getProperty("ai.temperature", Double.class, 0.3));
+        config.setTimeoutSeconds(environment.getProperty("ai.timeout-seconds", Integer.class, 30));
+        String sysPrompt = environment.getProperty("ai.system-prompt");
+        if (sysPrompt != null && !sysPrompt.isBlank()) {
+            config.setSystemPrompt(sysPrompt);
+        }
+        return config;
+    }
+
+    @Bean
+    AiAssistantPort aiAssistantPort(AiConfig aiConfig) {
+        return new CompositeAiAdapter(aiConfig);
+    }
+
+    @Bean
+    AiTaskInputBoundary aiTaskInputBoundary(TaskRepository taskRepository,
+                                            ProjectRepository projectRepository,
+                                            AiAssistantPort aiAssistantPort,
+                                            DomainEventDispatcher eventDispatcher) {
+        return new AiTaskControl(taskRepository, projectRepository, aiAssistantPort, eventDispatcher);
     }
 
     private Path databasePath(Environment environment) {

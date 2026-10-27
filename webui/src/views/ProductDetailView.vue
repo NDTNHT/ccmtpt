@@ -67,7 +67,7 @@ function handleAddToCart() {
     <!-- Back to Catalog Navigation -->
     <div class="mb-8">
       <RouterLink 
-        to="/shop"
+        to="/"
         class="inline-flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-emerald-400 transition-colors"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

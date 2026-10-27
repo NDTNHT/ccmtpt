@@ -1,33 +1,33 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import TaskDashboardView from '../views/TaskDashboardView.vue';
 import ProductCatalogView from '../views/ProductCatalogView.vue';
 import ProductDetailView from '../views/ProductDetailView.vue';
+import TaskDashboardView from '../views/TaskDashboardView.vue';
 import ArchitectureGuideView from '../views/ArchitectureGuideView.vue';
 
 const routes = [
   {
     path: '/',
-    name: 'tasks',
-    component: TaskDashboardView,
-    meta: { title: 'Task Management System • Clean Architecture' }
-  },
-  {
-    path: '/shop',
-    name: 'shop',
+    name: 'catalog',
     component: ProductCatalogView,
-    meta: { title: 'Demo Báo Cáo Chương 3 • Giỏ Hàng & Sản Phẩm' }
+    meta: { title: 'Aether Hardware Catalog' }
   },
   {
     path: '/product/:id',
     name: 'product-detail',
     component: ProductDetailView,
-    meta: { title: 'Chi Tiết Sản Phẩm • Dynamic Route' }
+    meta: { title: 'Product Specification' }
+  },
+  {
+    path: '/tasks',
+    name: 'tasks',
+    component: TaskDashboardView,
+    meta: { title: 'Clean Architecture Tasks & AI Assistant' }
   },
   {
     path: '/architecture',
     name: 'architecture',
     component: ArchitectureGuideView,
-    meta: { title: 'Báo Cáo Kiến Trúc Hệ Thống (Chương 3)' }
+    meta: { title: 'Báo Cáo Kiến Trúc & Cài Đặt Hệ Thống' }
   },
   {
     path: '/:pathMatch(.*)*',

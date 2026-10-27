@@ -28,7 +28,7 @@ function closeMobileMenu() {
   <header class="fixed top-0 left-0 right-0 z-40 px-4 pt-4 sm:pt-6 pointer-events-none">
     <div class="max-w-6xl mx-auto flex items-center justify-between glass-island rounded-full px-5 py-3 pointer-events-auto transition-fluid">
       
-      <!-- Brand Logo: Task Management System -->
+      <!-- Brand Logo -->
       <RouterLink 
         to="/" 
         class="flex items-center gap-2.5 group"
@@ -39,9 +39,9 @@ function closeMobileMenu() {
         </div>
         <div class="flex flex-col">
           <span class="text-sm font-bold tracking-tight text-white flex items-center gap-1.5 font-display">
-            TASK MASTER <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono font-medium">CLEAN ARCH</span>
+            AETHER <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono font-medium">SPA</span>
           </span>
-          <span class="text-[10px] text-zinc-400 tracking-wider uppercase font-mono">Task Management System</span>
+          <span class="text-[10px] text-zinc-400 tracking-wider uppercase font-mono">Clean Arch • Vue 3</span>
         </div>
       </RouterLink>
 
@@ -52,15 +52,15 @@ function closeMobileMenu() {
           class="px-4 py-2 rounded-full transition-fluid"
           :class="route.path === '/' ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white hover:bg-white/5'"
         >
-          Quản Lý Tác Vụ
+          Catalog
         </RouterLink>
 
         <RouterLink 
-          to="/shop" 
+          to="/tasks" 
           class="px-4 py-2 rounded-full transition-fluid"
-          :class="route.path.startsWith('/shop') || route.path.startsWith('/product') ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white hover:bg-white/5'"
+          :class="route.path === '/tasks' ? 'bg-white/10 text-white shadow-sm font-semibold' : 'text-zinc-400 hover:text-white hover:bg-white/5'"
         >
-          Sản Phẩm &amp; Giỏ Hàng (Đồ Án 2.5đ)
+          Clean Architecture Tasks
         </RouterLink>
 
         <RouterLink 
@@ -78,7 +78,7 @@ function closeMobileMenu() {
         <button 
           @click="aiStore.openAssistant()"
           class="flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-fluid group active:scale-[0.98]"
-          title="Mở AI Task Assistant Copilot"
+          title="Open AI Task Assistant"
         >
           <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
@@ -90,7 +90,6 @@ function closeMobileMenu() {
         <button 
           @click="cartStore.toggleModal()"
           class="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-fluid active:scale-95 group"
-          title="Giỏ hàng (Chương 3 Demo)"
           aria-label="View Cart"
         >
           <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -135,16 +134,16 @@ function closeMobileMenu() {
           class="px-4 py-2.5 rounded-xl transition-fluid"
           :class="route.path === '/' ? 'bg-emerald-500/20 text-emerald-400 font-semibold' : 'text-zinc-300 hover:bg-white/5'"
         >
-          Quản Lý Tác Vụ (Task Board)
+          Catalog Sản Phẩm
         </RouterLink>
 
         <RouterLink 
-          to="/shop" 
+          to="/tasks" 
           @click="closeMobileMenu"
           class="px-4 py-2.5 rounded-xl transition-fluid"
-          :class="route.path.startsWith('/shop') ? 'bg-emerald-500/20 text-emerald-400 font-semibold' : 'text-zinc-300 hover:bg-white/5'"
+          :class="route.path === '/tasks' ? 'bg-emerald-500/20 text-emerald-400 font-semibold' : 'text-zinc-300 hover:bg-white/5'"
         >
-          Sản Phẩm &amp; Giỏ Hàng (Đồ Án 2.5đ)
+          Clean Architecture Tasks
         </RouterLink>
 
         <RouterLink 

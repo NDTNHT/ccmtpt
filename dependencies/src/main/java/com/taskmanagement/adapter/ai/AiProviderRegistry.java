@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Registry holding pre-configured standard providers (OpenAI, Anthropic, Pollinations, Ollama)
- * and allowing users to register, configure, test, and activate custom OpenAI- or Anthropic-compatible providers.
+ * Registry holding pre-configured standard providers (OpenAI, Anthropic, Gemini, Pollinations, Ollama)
+ * and allowing users to register, configure, test, and activate custom OpenAI-, Anthropic-, or Gemini-compatible providers.
  */
 public class AiProviderRegistry {
     private final Map<String, CustomProviderDefinition> providers = new LinkedHashMap<>();
@@ -60,7 +60,18 @@ public class AiProviderRegistry {
             config.getTimeoutSeconds()
         ));
 
-        // 3. Pollinations AI (OpenAI Compatible)
+        // 3. Google Gemini (generateContent wire protocol)
+        registerProvider(new CustomProviderDefinition(
+            "gemini",
+            "Google Gemini",
+            AiProtocol.GEMINI,
+            "https://generativelanguage.googleapis.com/v1beta",
+            "",
+            "gemini-2.5-flash",
+            config.getTimeoutSeconds()
+        ));
+
+        // 4. Pollinations AI (OpenAI Compatible)
         registerProvider(new CustomProviderDefinition(
             "pollinations",
             "Pollinations AI",
@@ -71,7 +82,7 @@ public class AiProviderRegistry {
             config.getTimeoutSeconds()
         ));
 
-        // 4. Ollama Local (OpenAI Compatible)
+        // 5. Ollama Local (OpenAI Compatible)
         registerProvider(new CustomProviderDefinition(
             "ollama",
             "Ollama Local Server",
@@ -156,6 +167,9 @@ public class AiProviderRegistry {
         if (apiKey == null || apiKey.trim().isEmpty()) {
             return ProviderVerificationResultDto.failure(400, "API key is required to connect to provider and discover models", protocol != null ? protocol.name() : "OPENAI");
         }
+        if (protocol == AiProtocol.GEMINI) {
+            return GeminiCompatibleAiAdapter.verifyGeminiModels(this.httpClient, this.objectMapper, baseUrl, apiKey, timeoutSeconds);
+        }
         if (protocol == AiProtocol.ANTHROPIC) {
             return AnthropicCompatibleAiAdapter.verifyAnthropicModels(this.httpClient, this.objectMapper, baseUrl, apiKey, timeoutSeconds);
         }
@@ -191,6 +205,9 @@ public class AiProviderRegistry {
     public AiAssistantPort createAdapterFor(CustomProviderDefinition definition) {
         if (definition == null || !definition.hasValidApiKey()) {
             throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
+        }
+        if (definition.protocol() == AiProtocol.GEMINI) {
+            return new GeminiCompatibleAiAdapter(definition, config, httpClient, objectMapper);
         }
         if (definition.protocol() == AiProtocol.ANTHROPIC) {
             return new AnthropicCompatibleAiAdapter(definition, config, httpClient, objectMapper);

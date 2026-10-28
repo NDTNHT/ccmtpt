@@ -156,7 +156,7 @@ class AiTaskApiControllerTest {
         ApiResponse<List<CustomProviderDefinition>> listResponse = controller.getProviders();
         assertNotNull(listResponse);
         assertTrue(listResponse.success());
-        assertEquals(4, listResponse.data().size());
+        assertEquals(5, listResponse.data().size());
 
         // Register custom Anthropic provider
         CustomProviderDefinition customAnthropic = new CustomProviderDefinition(

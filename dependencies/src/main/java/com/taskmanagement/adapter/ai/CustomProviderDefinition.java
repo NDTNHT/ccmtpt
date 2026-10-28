@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * Definition for a user-configured custom AI provider specifying endpoint, credentials,
- * protocol (OpenAI or Anthropic), default model, and discovered available models.
+ * protocol (OpenAI, Anthropic, or Gemini), default model, and discovered available models.
  */
 public record CustomProviderDefinition(
     String id,
@@ -47,6 +47,10 @@ public record CustomProviderDefinition(
 
     public static CustomProviderDefinition ofAnthropic(String id, String name, String baseUrl, String apiKey, String defaultModel) {
         return new CustomProviderDefinition(id, name, AiProtocol.ANTHROPIC, baseUrl, apiKey, defaultModel, 30, List.of());
+    }
+
+    public static CustomProviderDefinition ofGemini(String id, String name, String baseUrl, String apiKey, String defaultModel) {
+        return new CustomProviderDefinition(id, name, AiProtocol.GEMINI, baseUrl, apiKey, defaultModel, 30, List.of());
     }
 
     public boolean hasValidApiKey() {

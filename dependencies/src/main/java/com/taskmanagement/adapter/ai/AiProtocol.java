@@ -17,6 +17,12 @@ public enum AiProtocol {
     ANTHROPIC,
 
     /**
+     * Google Gemini API (:generateContent) with x-goog-api-key header and contents payload.
+     * Compatible with Gemini 2.5 Flash, Gemini 1.5 Pro/Flash, etc. Reference from OpenCode protocols/gemini.ts.
+     */
+    GEMINI,
+
+    /**
      * Deterministic, offline heuristic engine without external HTTP requests.
      */
     SIMULATED

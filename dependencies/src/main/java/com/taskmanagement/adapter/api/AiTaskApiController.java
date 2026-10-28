@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping({"/api/tasks", "/api"})
 public class AiTaskApiController {
     private final AiTaskInputBoundary aiTaskInput;
 

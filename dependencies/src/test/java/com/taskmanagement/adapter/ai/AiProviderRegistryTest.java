@@ -26,17 +26,17 @@ class AiProviderRegistryTest {
     }
 
     @Test
-    @DisplayName("Registry should contain default standard providers")
+    @DisplayName("Registry should contain default real providers and NOT contain simulated provider")
     void testDefaultProviders() {
         List<CustomProviderDefinition> list = registry.listProviders();
 
         assertNotNull(list);
-        assertTrue(list.size() >= 5);
+        assertEquals(4, list.size());
         assertTrue(list.stream().anyMatch(p -> "openai".equalsIgnoreCase(p.id())));
         assertTrue(list.stream().anyMatch(p -> "anthropic".equalsIgnoreCase(p.id())));
         assertTrue(list.stream().anyMatch(p -> "pollinations".equalsIgnoreCase(p.id())));
         assertTrue(list.stream().anyMatch(p -> "ollama".equalsIgnoreCase(p.id())));
-        assertTrue(list.stream().anyMatch(p -> "simulated".equalsIgnoreCase(p.id())));
+        assertFalse(list.stream().anyMatch(p -> "simulated".equalsIgnoreCase(p.id())));
     }
 
     @Test
@@ -91,25 +91,30 @@ class AiProviderRegistryTest {
     }
 
     @Test
-    @DisplayName("Create adapter with empty key falls back to SimulatedAiAdapter")
-    void testCreateAdapterFallbackWhenKeyEmpty() {
+    @DisplayName("Create adapter with empty key throws IllegalStateException")
+    void testCreateAdapterThrowsWhenKeyEmpty() {
         CustomProviderDefinition emptyKeyDef = CustomProviderDefinition.ofAnthropic(
             "empty-claude", "No Key Claude", "https://api.anthropic.com/v1", "", "claude-3-5-sonnet-20241022"
         );
 
-        var adapter = registry.createAdapterFor(emptyKeyDef);
-        assertInstanceOf(SimulatedAiAdapter.class, adapter);
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> registry.createAdapterFor(emptyKeyDef));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Verify simulated provider returns valid mock model list")
-    void testVerifySimulatedProvider() {
-        ProviderVerificationResultDto result = registry.verifyAndDiscoverModels("http://localhost", "", AiProtocol.SIMULATED, 5);
-        assertTrue(result.valid());
-        assertEquals(200, result.statusCode());
-        assertEquals("SIMULATED", result.protocol());
-        assertFalse(result.availableModels().isEmpty());
-        assertTrue(result.availableModels().contains("heuristic-default"));
+    @DisplayName("Resolving active provider when no key is configured throws IllegalStateException")
+    void testResolveActiveThrowsWhenNoKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> registry.resolveActiveDefinition());
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
+    }
+
+    @Test
+    @DisplayName("Verify provider with missing API key returns 400 error")
+    void testVerifyProviderMissingKey() {
+        ProviderVerificationResultDto result = registry.verifyAndDiscoverModels("https://api.openai.com/v1", "", AiProtocol.OPENAI, 5);
+        assertFalse(result.valid());
+        assertEquals(400, result.statusCode());
+        assertTrue(result.message().contains("API key is required"));
     }
 
     @Test
@@ -118,17 +123,7 @@ class AiProviderRegistryTest {
         ProviderVerificationResultDto result = registry.verifyRegisteredProvider("unknown-prov");
         assertFalse(result.valid());
         assertEquals(404, result.statusCode());
-        assertTrue(result.message().contains("không tồn tại") || result.message().contains("khong ton tai"));
-    }
-
-    @Test
-    @DisplayName("Verify registered simulated provider updates available models")
-    void testVerifyRegisteredSimulatedProviderUpdatesModels() {
-        ProviderVerificationResultDto result = registry.verifyRegisteredProvider("simulated");
-        assertTrue(result.valid());
-        CustomProviderDefinition simulatedDef = registry.getProvider("simulated");
-        assertNotNull(simulatedDef);
-        assertFalse(simulatedDef.availableModels().isEmpty());
+        assertTrue(result.message().contains("does not exist"));
     }
 
     @Test

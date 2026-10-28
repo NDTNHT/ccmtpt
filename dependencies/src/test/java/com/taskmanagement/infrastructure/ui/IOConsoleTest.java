@@ -3,6 +3,7 @@ package com.taskmanagement.infrastructure.ui;
 import com.taskmanagement.adapter.ai.AiConfig;
 import com.taskmanagement.adapter.ai.AiProtocol;
 import com.taskmanagement.adapter.ai.CompositeAiAdapter;
+import com.taskmanagement.adapter.ai.CustomProviderDefinition;
 import com.taskmanagement.adapter.persistence.IOSaveToMemory;
 import com.taskmanagement.adapter.persistence.IOSaveToMemoryProject;
 import com.taskmanagement.application.boundary.AiTaskInputBoundary;
@@ -11,9 +12,18 @@ import com.taskmanagement.application.boundary.TaskInputBoundary;
 import com.taskmanagement.application.control.AiTaskControl;
 import com.taskmanagement.application.control.ProjectControl;
 import com.taskmanagement.application.control.TaskControl;
+import com.taskmanagement.application.dto.ai.AiAnalysisResultDto;
+import com.taskmanagement.application.dto.ai.AiDeadlineEstimationDto;
+import com.taskmanagement.application.dto.ai.AiPriorityRecommendationDto;
+import com.taskmanagement.application.dto.ai.AiTaskDecompositionDto;
+import com.taskmanagement.application.dto.ai.AiTaskSummaryDto;
+import com.taskmanagement.application.dto.ai.ProviderVerificationResultDto;
+import com.taskmanagement.application.port.AiAssistantPort;
 import com.taskmanagement.domain.project.entity.Project;
+import com.taskmanagement.domain.project.repository.ProjectRepository;
 import com.taskmanagement.domain.task.entity.Task;
 import com.taskmanagement.domain.task.enums.Priority;
+import com.taskmanagement.domain.task.repository.TaskRepository;
 import com.taskmanagement.domain.task.valueobject.Deadline;
 import com.taskmanagement.domain.task.valueobject.TaskTitle;
 import com.taskmanagement.infrastructure.event.InMemoryDomainEventDispatcher;
@@ -25,16 +35,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Scanner;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisplayName("IOConsole Interactive Client")
 class IOConsoleTest {
-    private IOSaveToMemory taskRepository;
-    private IOSaveToMemoryProject projectRepository;
+
+    private TaskRepository taskRepository;
+    private ProjectRepository projectRepository;
     private InMemoryDomainEventDispatcher dispatcher;
     private TaskInputBoundary taskInput;
     private ProjectInputBoundary projectInput;
@@ -59,9 +71,40 @@ class IOConsoleTest {
         );
         taskRepository.save(task);
 
+        AiAssistantPort stub = new AiAssistantPort() {
+            @Override
+            public AiTaskDecompositionDto decomposeTask(Task task, Project project, String customPrompt) {
+                return new AiTaskDecompositionDto(task.getId().value(), List.of("Subtask 1"), "Rationale");
+            }
+            @Override
+            public AiTaskDecompositionDto suggestSubTasks(Task task, Project project, String customPrompt) {
+                return new AiTaskDecompositionDto(task.getId().value(), List.of("Subtask 2"), "Rationale");
+            }
+            @Override
+            public AiDeadlineEstimationDto estimateDeadline(Task task, Project project, String customPrompt) {
+                return new AiDeadlineEstimationDto(task.getId().value(), 8, Instant.now().plus(Duration.ofDays(2)), "HIGH", "Reason");
+            }
+            @Override
+            public AiPriorityRecommendationDto analyzePriority(Task task, Project project, Priority domainPriority, String customPrompt) {
+                return new AiPriorityRecommendationDto(task.getId().value(), Priority.HIGH, domainPriority, Priority.HIGH, "Reason");
+            }
+            @Override
+            public AiTaskSummaryDto generateSummary(Task task, Project project, String customPrompt) {
+                return new AiTaskSummaryDto(task.getId().value(), task.getTitle().value(), "Summary", 100.0, List.of("Point 1"));
+            }
+            @Override
+            public AiAnalysisResultDto analyzeTaskComprehensive(Task task, Project project, Priority domainPriority, String customPrompt) {
+                return new AiAnalysisResultDto(task.getId().value(), decomposeTask(task, project, customPrompt), estimateDeadline(task, project, customPrompt), analyzePriority(task, project, domainPriority, customPrompt), generateSummary(task, project, customPrompt));
+            }
+            @Override
+            public ProviderVerificationResultDto verifyAndDiscoverModels(String baseUrl, String apiKey, AiProtocol protocol, int timeoutSeconds) {
+                return ProviderVerificationResultDto.success(200, List.of("model-alpha", "model-beta"), "OPENAI");
+            }
+        };
+
         taskInput = new TaskControl(taskRepository, projectRepository, dispatcher);
         projectInput = new ProjectControl(projectRepository);
-        aiTaskInput = new AiTaskControl(taskRepository, projectRepository, new CompositeAiAdapter(AiConfig.defaults()), dispatcher);
+        aiTaskInput = new AiTaskControl(taskRepository, projectRepository, new CompositeAiAdapter(stub), dispatcher);
     }
 
     @Test
@@ -73,7 +116,7 @@ class IOConsoleTest {
         // <task UUID> (Enter task UUID)
         // [Enter] (Default system prompt)
         // y (Confirm apply subtasks)
-        // 0 (Exit program from main menu)
+        // 0 (Back / exit)
         String simulatedInput = String.join("\n",
             "7",
             "2",
@@ -103,14 +146,6 @@ class IOConsoleTest {
     @Test
     @DisplayName("Option 7 subchoice 8 updates AI configuration interactively")
     void testOption7ConfigureAi() {
-        // User inputs:
-        // 7 (Choose AI Assistant)
-        // 8 (Xem / Thay doi cau hinh)
-        // y (Confirm change)
-        // https://gen.pollinations.ai/v1 (Base URL)
-        // qwen/qwen3.7-flash (Model ID)
-        // dummy-pollinations-key (API key)
-        // 0 (Exit program)
         String simulatedInput = String.join("\n",
             "7",
             "8",
@@ -130,41 +165,29 @@ class IOConsoleTest {
         console.start();
 
         String output = outContent.toString();
-        assertTrue(output.contains("DA CAP NHAT CAU HINH AI THANH CONG"));
-        assertTrue(output.contains("https://gen.pollinations.ai/v1"));
-        assertTrue(output.contains("qwen/qwen3.7-flash"));
+        assertTrue(output.contains("CAU HINH HIEN TAI"));
+        assertTrue(output.contains("CAP NHAT CAU HINH"));
 
-        var cfg = aiTaskInput.getAiConfig();
-        assertEquals("https://gen.pollinations.ai/v1", cfg.getBaseUrl());
-        assertEquals("qwen/qwen3.7-flash", cfg.getModel());
-        assertEquals("dummy-pollinations-key", cfg.getApiKey());
+        AiConfig current = aiTaskInput.getAiConfig();
+        assertNotNull(current);
+        assertEquals("https://gen.pollinations.ai/v1", current.getBaseUrl());
+        assertEquals("qwen/qwen3.7-flash", current.getModel());
+        assertEquals("dummy-pollinations-key", current.getApiKey());
     }
 
     @Test
-    @DisplayName("Option 7 subchoice 7 registers and activates custom Anthropic provider interactively")
-    void testOption7RegisterCustomAnthropicProvider() {
-        // User inputs:
-        // 7 (AI menu)
-        // 7 (Quan ly Providers)
-        // 2 (Them Provider tuy chinh moi)
-        // my-claude (ID)
-        // My Claude 3.5 (Name)
-        // 2 (Anthropic standard)
-        // https://api.anthropic.com/v1 (Base URL)
-        // claude-3-5-sonnet-20241022 (Model)
-        // sk-ant-test-key-12345 (Key)
-        // y (Activate now)
-        // 0 (Exit program)
+    @DisplayName("Option 7 subchoice 7 manages custom AI providers interactively")
+    void testOption7ManageCustomProviders() {
         String simulatedInput = String.join("\n",
             "7",
             "7",
             "2",
-            "my-claude",
-            "My Claude 3.5",
+            "custom-claude",
+            "My Enterprise Claude",
             "2",
             "https://api.anthropic.com/v1",
             "claude-3-5-sonnet-20241022",
-            "sk-ant-test-key-12345",
+            "sk-ant-test-key-999",
             "y",
             "0"
         ) + "\n";
@@ -178,35 +201,32 @@ class IOConsoleTest {
         console.start();
 
         String output = outContent.toString();
-        assertTrue(output.contains("DA DANG KY PROVIDER MOI THANH CONG: my-claude [ANTHROPIC]"));
-        assertTrue(output.contains("DA CHUYEN ACTIVE PROVIDER SANG: my-claude"));
+        assertTrue(output.contains("DANH SACH PROVIDERS DA DANG KY"));
+        assertTrue(output.contains("DA DANG KY PROVIDER MOI THANH CONG: custom-claude [ANTHROPIC]"));
+        assertTrue(output.contains("DA CHUYEN ACTIVE PROVIDER SANG: custom-claude"));
 
-        var active = aiTaskInput.getActiveProvider();
+        CustomProviderDefinition active = aiTaskInput.getActiveProvider();
         assertNotNull(active);
-        assertEquals("my-claude", active.id());
+        assertEquals("custom-claude", active.id());
         assertEquals(AiProtocol.ANTHROPIC, active.protocol());
     }
 
     @Test
     @DisplayName("Option 7 subchoice 7 option 3 tests registered provider models and updates default model")
     void testOption7VerifyAndDiscoverModels() {
-        // User inputs:
-        // 7 (AI menu)
-        // 7 (Quan ly Providers)
-        // 3 (Kiem tra Key & Lay danh sach Models)
-        // 1 (Kiem tra Provider da dang ky)
-        // simulated (ID Provider can kiem tra)
-        // y (Confirm cap nhat model mac dinh)
-        // 2 (Chon model thu 2 trong danh sach: heuristic-fast)
-        // 0 (Exit program)
         String simulatedInput = String.join("\n",
             "7",
             "7",
             "3",
-            "1",
-            "simulated",
-            "y",
             "2",
+            "1",
+            "https://api.test.com/v1",
+            "test-key-123",
+            "y",
+            "custom-verified",
+            "Custom Verified",
+            "2",
+            "y",
             "0"
         ) + "\n";
 
@@ -221,10 +241,11 @@ class IOConsoleTest {
         String output = outContent.toString();
         assertTrue(output.contains("KET QUA KIEM TRA PROVIDER & MODELS"));
         assertTrue(output.contains("HOP LE / THANH CONG"));
-        assertTrue(output.contains("DA CAP NHAT MODEL MAC DINH CUA simulated THANH: heuristic-fast"));
+        assertTrue(output.contains("DA LUU VA DANG KY PROVIDER MOI THANH CONG: custom-verified voi Model: model-beta"));
 
         var providers = aiTaskInput.getProviders();
-        var simulated = providers.stream().filter(p -> "simulated".equalsIgnoreCase(p.id())).findFirst().orElseThrow();
-        assertEquals("heuristic-fast", simulated.defaultModel());
+        var custom = providers.stream().filter(p -> "custom-verified".equalsIgnoreCase(p.id())).findFirst().orElseThrow();
+        assertEquals("model-beta", custom.defaultModel());
+        assertEquals("custom-verified", aiTaskInput.getActiveProvider().id());
     }
 }

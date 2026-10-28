@@ -9,6 +9,7 @@ import com.taskmanagement.adapter.api.dto.AiApplyDecompositionRequest;
 import com.taskmanagement.adapter.api.dto.AiApplyPriorityRequest;
 import com.taskmanagement.adapter.api.dto.AiConfigDto;
 import com.taskmanagement.adapter.api.dto.ApiResponse;
+import com.taskmanagement.adapter.api.dto.DraftSubtasksRequest;
 import com.taskmanagement.adapter.api.dto.VerifyProviderRequest;
 import com.taskmanagement.application.boundary.AiTaskInputBoundary;
 import com.taskmanagement.application.dto.ai.AiAnalysisResultDto;
@@ -92,6 +93,20 @@ public class AiTaskApiController {
     public ApiResponse<ProviderVerificationResultDto> verifyRegisteredProvider(@PathVariable String providerId) {
         ProviderVerificationResultDto result = aiTaskInput.verifyRegisteredProvider(providerId);
         return ApiResponse.success(result.message(), result);
+    }
+
+    @PostMapping("/ai/draft-subtasks")
+    public ApiResponse<AiTaskDecompositionDto> draftSubtasks(@RequestBody(required = false) DraftSubtasksRequest request) {
+        if (request == null || request.title() == null || request.title().isBlank()) {
+            throw new IllegalArgumentException("Task title is required to suggest subtasks");
+        }
+        AiTaskDecompositionDto result = aiTaskInput.decomposeDraft(
+            request.title(),
+            request.description(),
+            request.projectId(),
+            request.customSystemPrompt()
+        );
+        return ApiResponse.success("Draft subtasks decomposed successfully", result);
     }
 
     @PostMapping("/{taskId}/ai/analyze")

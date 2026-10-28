@@ -1,9 +1,5 @@
 package com.taskmanagement.adapter.ai;
 
-import com.taskmanagement.application.dto.ai.AiDeadlineEstimationDto;
-import com.taskmanagement.application.dto.ai.AiPriorityRecommendationDto;
-import com.taskmanagement.application.dto.ai.AiTaskDecompositionDto;
-import com.taskmanagement.application.dto.ai.AiTaskSummaryDto;
 import com.taskmanagement.domain.project.entity.Project;
 import com.taskmanagement.domain.task.entity.Task;
 import com.taskmanagement.domain.task.enums.Priority;
@@ -16,9 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenAiCompatibleAiAdapterTest {
@@ -30,7 +24,7 @@ class OpenAiCompatibleAiAdapterTest {
     @BeforeEach
     void setUp() {
         AiConfig config = new AiConfig();
-        config.setApiKey(""); // Empty key forces fallback
+        config.setApiKey(""); // Empty key must fail
         adapter = new OpenAiCompatibleAiAdapter(config);
 
         project = Project.create("Core Engine", "Infrastructure");
@@ -44,51 +38,42 @@ class OpenAiCompatibleAiAdapterTest {
     }
 
     @Test
-    @DisplayName("Decompose task should smoothly fall back when API key is missing")
-    void testDecomposeFallbackWhenNoApiKey() {
-        AiTaskDecompositionDto result = adapter.decomposeTask(task, project, null);
-
-        assertNotNull(result);
-        assertEquals(task.getId().value(), result.taskId());
-        assertFalse(result.subTasks().isEmpty());
+    @DisplayName("Decompose task should throw IllegalStateException when API key is missing")
+    void testDecomposeThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.decomposeTask(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Suggest subtasks should smoothly fall back when API key is missing")
-    void testSuggestSubTasksFallbackWhenNoApiKey() {
-        AiTaskDecompositionDto result = adapter.suggestSubTasks(task, project, null);
-
-        assertNotNull(result);
-        assertFalse(result.subTasks().isEmpty());
+    @DisplayName("Suggest subtasks should throw IllegalStateException when API key is missing")
+    void testSuggestSubTasksThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.suggestSubTasks(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Estimate deadline should smoothly fall back when API key is missing")
-    void testEstimateDeadlineFallbackWhenNoApiKey() {
-        AiDeadlineEstimationDto result = adapter.estimateDeadline(task, project, null);
-
-        assertNotNull(result);
-        assertTrue(result.estimatedHours() > 0);
-        assertNotNull(result.recommendedDeadline());
+    @DisplayName("Estimate deadline should throw IllegalStateException when API key is missing")
+    void testEstimateDeadlineThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.estimateDeadline(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Analyze priority should smoothly fall back when API key is missing")
-    void testAnalyzePriorityFallbackWhenNoApiKey() {
-        AiPriorityRecommendationDto result = adapter.analyzePriority(task, project, Priority.MEDIUM, null);
-
-        assertNotNull(result);
-        assertNotNull(result.effectivePriority());
-        assertNotNull(result.reasoning());
+    @DisplayName("Analyze priority should throw IllegalStateException when API key is missing")
+    void testAnalyzePriorityThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.analyzePriority(task, project, Priority.MEDIUM, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Generate summary should smoothly fall back when API key is missing")
-    void testGenerateSummaryFallbackWhenNoApiKey() {
-        AiTaskSummaryDto result = adapter.generateSummary(task, project, null);
-
-        assertNotNull(result);
-        assertEquals("Refactor Auth Subsystem", result.title());
-        assertNotNull(result.summary());
+    @DisplayName("Generate summary should throw IllegalStateException when API key is missing")
+    void testGenerateSummaryThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.generateSummary(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 }

@@ -83,7 +83,7 @@ public class ConsoleTableRenderer {
             ? (config.getApiKey().length() > 6
                 ? config.getApiKey().substring(0, 3) + "..." + config.getApiKey().substring(config.getApiKey().length() - 3)
                 : "***")
-            : "(Chua nhap - dang dung Simulated Fallback)";
+            : "(Not configured - API key required)";
         out.println("API Key    : " + maskedKey);
         out.println("Timeout (s): " + config.getTimeoutSeconds());
         out.println("----------------------------------");

@@ -10,6 +10,7 @@ import com.taskmanagement.adapter.api.dto.AiApplyDecompositionRequest;
 import com.taskmanagement.adapter.api.dto.AiApplyPriorityRequest;
 import com.taskmanagement.adapter.api.dto.AiConfigDto;
 import com.taskmanagement.adapter.api.dto.ApiResponse;
+import com.taskmanagement.adapter.api.dto.DraftSubtasksRequest;
 import com.taskmanagement.adapter.api.dto.VerifyProviderRequest;
 import com.taskmanagement.adapter.persistence.IOSaveToMemory;
 import com.taskmanagement.adapter.persistence.IOSaveToMemoryProject;
@@ -21,6 +22,7 @@ import com.taskmanagement.application.dto.ai.AiPriorityRecommendationDto;
 import com.taskmanagement.application.dto.ai.AiTaskDecompositionDto;
 import com.taskmanagement.application.dto.ai.AiTaskSummaryDto;
 import com.taskmanagement.application.dto.ai.ProviderVerificationResultDto;
+import com.taskmanagement.application.port.AiAssistantPort;
 import com.taskmanagement.domain.project.entity.Project;
 import com.taskmanagement.domain.project.repository.ProjectRepository;
 import com.taskmanagement.domain.task.entity.Task;
@@ -40,12 +42,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("AiTaskApiController Web Adapter")
 class AiTaskApiControllerTest {
 
     private AiTaskApiController controller;
+    private AiTaskApiController unconfiguredController;
     private TaskRepository taskRepository;
     private ProjectRepository projectRepository;
     private Task task;
@@ -68,13 +72,59 @@ class AiTaskApiControllerTest {
         );
         taskRepository.save(task);
 
+        AiAssistantPort stub = new AiAssistantPort() {
+            @Override
+            public AiTaskDecompositionDto decomposeTask(Task task, Project project, String customPrompt) {
+                return new AiTaskDecompositionDto(task.getId().value(), List.of("Subtask 1", "Subtask 2"), "Rationale");
+            }
+
+            @Override
+            public AiTaskDecompositionDto suggestSubTasks(Task task, Project project, String customPrompt) {
+                return new AiTaskDecompositionDto(task.getId().value(), List.of("Extra Subtask"), "Rationale");
+            }
+
+            @Override
+            public AiDeadlineEstimationDto estimateDeadline(Task task, Project project, String customPrompt) {
+                return new AiDeadlineEstimationDto(task.getId().value(), 16, Instant.now().plus(Duration.ofDays(3)), "HIGH", "Explanation");
+            }
+
+            @Override
+            public AiPriorityRecommendationDto analyzePriority(Task task, Project project, Priority domainPriority, String customPrompt) {
+                return new AiPriorityRecommendationDto(task.getId().value(), Priority.HIGH, domainPriority, Priority.HIGH, "Reasoning");
+            }
+
+            @Override
+            public AiTaskSummaryDto generateSummary(Task task, Project project, String customPrompt) {
+                return new AiTaskSummaryDto(task.getId().value(), task.getTitle().value(), "Summary text", 50.0, List.of("H1"));
+            }
+
+            @Override
+            public AiAnalysisResultDto analyzeTaskComprehensive(Task task, Project project, Priority domainPriority, String customPrompt) {
+                return new AiAnalysisResultDto(
+                    task.getId().value(),
+                    decomposeTask(task, project, customPrompt),
+                    estimateDeadline(task, project, customPrompt),
+                    analyzePriority(task, project, domainPriority, customPrompt),
+                    generateSummary(task, project, customPrompt)
+                );
+            }
+        };
+
         AiTaskInputBoundary aiInput = new AiTaskControl(
+            taskRepository,
+            projectRepository,
+            new CompositeAiAdapter(stub),
+            dispatcher
+        );
+        controller = new AiTaskApiController(aiInput);
+
+        AiTaskInputBoundary unconfiguredAiInput = new AiTaskControl(
             taskRepository,
             projectRepository,
             new CompositeAiAdapter(AiConfig.defaults()),
             dispatcher
         );
-        controller = new AiTaskApiController(aiInput);
+        unconfiguredController = new AiTaskApiController(unconfiguredAiInput);
     }
 
     @Test
@@ -106,7 +156,7 @@ class AiTaskApiControllerTest {
         ApiResponse<List<CustomProviderDefinition>> listResponse = controller.getProviders();
         assertNotNull(listResponse);
         assertTrue(listResponse.success());
-        assertTrue(listResponse.data().size() >= 5);
+        assertEquals(4, listResponse.data().size());
 
         // Register custom Anthropic provider
         CustomProviderDefinition customAnthropic = new CustomProviderDefinition(
@@ -132,32 +182,24 @@ class AiTaskApiControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/tasks/ai/providers/verify should verify provider and discover models")
-    void testVerifyProviderEndpoint() {
+    @DisplayName("POST /api/tasks/ai/providers/verify requires an API key")
+    void testVerifyProviderEndpointRequiresKey() {
         VerifyProviderRequest request = new VerifyProviderRequest(
             "https://api.openai.com/v1",
             "",
-            AiProtocol.SIMULATED,
+            AiProtocol.OPENAI,
             5
         );
-        ApiResponse<ProviderVerificationResultDto> response = controller.verifyProvider(request);
+        ApiResponse<ProviderVerificationResultDto> response = unconfiguredController.verifyProvider(request);
         assertNotNull(response);
-        assertTrue(response.success());
         assertNotNull(response.data());
-        assertTrue(response.data().valid());
-        assertEquals(200, response.data().statusCode());
-        assertFalse(response.data().availableModels().isEmpty());
+        assertFalse(response.data().valid());
+        assertEquals(400, response.data().statusCode());
     }
 
     @Test
-    @DisplayName("POST /api/tasks/ai/providers/{providerId}/verify should verify registered provider")
-    void testVerifyRegisteredProviderEndpoint() {
-        ApiResponse<ProviderVerificationResultDto> response = controller.verifyRegisteredProvider("simulated");
-        assertNotNull(response);
-        assertTrue(response.success());
-        assertNotNull(response.data());
-        assertTrue(response.data().valid());
-
+    @DisplayName("POST /api/tasks/ai/providers/{providerId}/verify returns 404 when not found")
+    void testVerifyRegisteredProviderNotFound() {
         ApiResponse<ProviderVerificationResultDto> notFoundResponse = controller.verifyRegisteredProvider("non-existent");
         assertNotNull(notFoundResponse);
         assertNotNull(notFoundResponse.data());
@@ -166,10 +208,30 @@ class AiTaskApiControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/tasks/{taskId}/ai/decompose should return checklist")
+    @DisplayName("Calling AI features without active AI provider throws IllegalStateException")
+    void testCallingAiFeaturesWithoutConnectedProviderThrows() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> unconfiguredController.decompose(task.getId().value(), null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
+    }
+
+    @Test
+    @DisplayName("POST /api/tasks/{taskId}/ai/decompose should return checklist when AI is connected")
     void testDecomposeEndpoint() {
         AiAnalysisRequest request = new AiAnalysisRequest("Custom system prompt");
         ApiResponse<AiTaskDecompositionDto> response = controller.decompose(task.getId().value(), request);
+
+        assertNotNull(response);
+        assertTrue(response.success());
+        assertNotNull(response.data());
+        assertFalse(response.data().subTasks().isEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/tasks/ai/draft-subtasks should decompose unpersisted draft")
+    void testDraftSubtasksEndpoint() {
+        DraftSubtasksRequest req = new DraftSubtasksRequest("Setup Redis Cache", "Use redisson", null, null);
+        ApiResponse<AiTaskDecompositionDto> response = controller.draftSubtasks(req);
 
         assertNotNull(response);
         assertTrue(response.success());

@@ -20,7 +20,11 @@ async function request(endpoint, options = {}) {
       let errorMsg = `HTTP Error ${response.status}: ${response.statusText}`;
       try {
         const errorJson = await response.json();
-        if (errorJson.message) {
+        if (errorJson.error && errorJson.error.details) {
+          errorMsg = errorJson.error.details;
+        } else if (errorJson.error && errorJson.error.message) {
+          errorMsg = errorJson.error.message;
+        } else if (errorJson.message) {
           errorMsg = errorJson.message;
         }
       } catch (ignored) {
@@ -78,6 +82,10 @@ export const apiService = {
   }),
 
   // AI Task Copilot Endpoints
+  draftSubtasks: (payload) => request('/tasks/ai/draft-subtasks', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }),
   analyzeTask: (taskId, customPrompt) => request(`/tasks/${taskId}/ai/analyze`, {
     method: 'POST',
     body: JSON.stringify({ customSystemPrompt: customPrompt })

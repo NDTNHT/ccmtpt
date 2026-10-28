@@ -24,7 +24,9 @@ import com.taskmanagement.domain.task.exception.TaskValidationException;
 import com.taskmanagement.domain.task.repository.TaskRepository;
 import com.taskmanagement.domain.task.valueobject.Deadline;
 import com.taskmanagement.domain.task.valueobject.TaskId;
+import com.taskmanagement.domain.task.valueobject.TaskTitle;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -57,6 +59,32 @@ public class AiTaskControl implements AiTaskInputBoundary {
         this.aiAssistantPort = Objects.requireNonNull(aiAssistantPort, "AiAssistantPort cannot be null");
         this.priorityCalculator = priorityCalculator != null ? priorityCalculator : new TaskPriorityCalculator();
         this.eventDispatcher = Objects.requireNonNull(eventDispatcher, "DomainEventDispatcher cannot be null");
+    }
+
+    @Override
+    public AiTaskDecompositionDto decomposeDraft(String title, String description, UUID projectId, String customPrompt) {
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("Task title is required for AI decomposition");
+        }
+        Project project = null;
+        if (projectId != null) {
+            project = getProjectOrNull(new ProjectId(projectId));
+        }
+        if (project == null) {
+            project = projectRepository.findAll().stream()
+                .filter(p -> p.getProjectType() == com.taskmanagement.domain.project.enums.ProjectType.INBOX)
+                .findFirst()
+                .or(() -> projectRepository.findAll().stream().findFirst())
+                .orElseGet(() -> Project.create("INBOX", "Default Inbox"));
+        }
+        Task draftTask = Task.create(
+            new TaskTitle(title.trim()),
+            description != null ? description.trim() : "",
+            Deadline.of(Instant.now().plus(Duration.ofDays(3))),
+            Priority.MEDIUM,
+            project.getId()
+        );
+        return aiAssistantPort.decomposeTask(draftTask, project, customPrompt);
     }
 
     @Override
@@ -105,13 +133,13 @@ public class AiTaskControl implements AiTaskInputBoundary {
 
     @Override
     public void applyDecomposition(UUID taskId, List<String> subTasks) {
-        if (subTasks == null || subTasks.isEmpty()) {
-            return;
-        }
         Task task = getTaskOrThrow(taskId);
-        for (String title : subTasks) {
-            if (title != null && !title.trim().isBlank()) {
-                task.addSubTask(title.trim());
+        if (subTasks == null || subTasks.isEmpty()) {
+            throw new IllegalArgumentException("Subtask list cannot be empty");
+        }
+        for (String subTaskTitle : subTasks) {
+            if (subTaskTitle != null && !subTaskTitle.isBlank()) {
+                task.addSubTask(subTaskTitle.trim());
             }
         }
         saveAndDispatch(task);
@@ -119,20 +147,20 @@ public class AiTaskControl implements AiTaskInputBoundary {
 
     @Override
     public void applyEstimatedDeadline(UUID taskId, Instant deadlineInstant) {
-        if (deadlineInstant == null) {
-            throw new TaskValidationException("Deadline instant cannot be null");
-        }
         Task task = getTaskOrThrow(taskId);
+        if (deadlineInstant == null) {
+            throw new IllegalArgumentException("Deadline instant cannot be null");
+        }
         task.reschedule(Deadline.of(deadlineInstant));
         saveAndDispatch(task);
     }
 
     @Override
     public void applyRecommendedPriority(UUID taskId, Priority priority) {
-        if (priority == null) {
-            throw new TaskValidationException("Priority cannot be null");
-        }
         Task task = getTaskOrThrow(taskId);
+        if (priority == null) {
+            throw new IllegalArgumentException("Priority cannot be null");
+        }
         task.changePriority(priority);
         saveAndDispatch(task);
     }
@@ -147,13 +175,13 @@ public class AiTaskControl implements AiTaskInputBoundary {
         AiConfig config = aiAssistantPort.getConfig();
         if (config != null) {
             if (baseUrl != null && !baseUrl.isBlank()) {
-                config.setBaseUrl(baseUrl);
+                config.setBaseUrl(baseUrl.trim());
             }
             if (model != null && !model.isBlank()) {
-                config.setModel(model);
+                config.setModel(model.trim());
             }
             if (apiKey != null) {
-                config.setApiKey(apiKey);
+                config.setApiKey(apiKey.trim());
             }
         }
     }
@@ -161,19 +189,13 @@ public class AiTaskControl implements AiTaskInputBoundary {
     @Override
     public List<CustomProviderDefinition> getProviders() {
         AiProviderRegistry registry = aiAssistantPort.getRegistry();
-        if (registry != null) {
-            return registry.listProviders();
-        }
-        return List.of();
+        return registry != null ? registry.listProviders() : List.of();
     }
 
     @Override
     public CustomProviderDefinition getActiveProvider() {
         AiProviderRegistry registry = aiAssistantPort.getRegistry();
-        if (registry != null) {
-            return registry.resolveActiveDefinition();
-        }
-        return null;
+        return registry != null ? registry.getActiveProvider() : null;
     }
 
     @Override

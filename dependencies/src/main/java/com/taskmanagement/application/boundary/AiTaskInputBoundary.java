@@ -22,6 +22,11 @@ import java.util.UUID;
 public interface AiTaskInputBoundary {
 
     /**
+     * Breaks down an unpersisted task draft into concrete checklist subtasks.
+     */
+    AiTaskDecompositionDto decomposeDraft(String title, String description, UUID projectId, String customPrompt);
+
+    /**
      * Breaks down the specified task into concrete checklist subtasks.
      */
     AiTaskDecompositionDto decomposeTask(UUID taskId, String customPrompt);

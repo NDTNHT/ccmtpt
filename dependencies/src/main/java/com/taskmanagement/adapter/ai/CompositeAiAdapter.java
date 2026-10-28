@@ -15,7 +15,7 @@ import java.util.Objects;
 
 /**
  * Composite adapter that selects dynamically between user-registered providers (OpenAI, Anthropic,
- * Pollinations, Ollama, or custom) and the offline Simulated AI provider.
+ * Pollinations, Ollama, or custom).
  */
 public class CompositeAiAdapter implements AiAssistantPort {
     private final AiConfig config;

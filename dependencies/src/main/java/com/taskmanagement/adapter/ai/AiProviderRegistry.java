@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Registry holding pre-configured standard providers (OpenAI, Anthropic, Pollinations, Ollama, Simulated)
+ * Registry holding pre-configured standard providers (OpenAI, Anthropic, Pollinations, Ollama)
  * and allowing users to register, configure, test, and activate custom OpenAI- or Anthropic-compatible providers.
  */
 public class AiProviderRegistry {
@@ -77,20 +77,9 @@ public class AiProviderRegistry {
             "Ollama Local Server",
             AiProtocol.OPENAI,
             "http://localhost:11434/v1",
-            "ollama",
+            "",
             "llama3.2",
             config.getTimeoutSeconds()
-        ));
-
-        // 5. Offline Simulation
-        registerProvider(new CustomProviderDefinition(
-            "simulated",
-            "Simulated Offline Heuristics",
-            AiProtocol.SIMULATED,
-            "",
-            "",
-            "heuristic-simulated",
-            1
         ));
 
         this.activeProviderId = "auto";
@@ -128,15 +117,12 @@ public class AiProviderRegistry {
         this.activeProviderId = normalized;
     }
 
-    public synchronized CustomProviderDefinition resolveActiveDefinition() {
+    public synchronized CustomProviderDefinition getActiveProvider() {
         if (!"auto".equalsIgnoreCase(activeProviderId)) {
-            CustomProviderDefinition selected = providers.get(activeProviderId);
-            if (selected != null) {
-                return selected;
-            }
+            return providers.get(activeProviderId);
         }
 
-        // In 'auto' mode: if config has API key, map config; otherwise fallback to simulated
+        // In 'auto' mode: if config has API key, map config; otherwise check registered providers with key
         if (config.hasValidApiKey()) {
             return new CustomProviderDefinition(
                 "active-configured",
@@ -149,12 +135,26 @@ public class AiProviderRegistry {
             );
         }
 
-        return providers.get("simulated");
+        for (CustomProviderDefinition provider : providers.values()) {
+            if (provider.hasValidApiKey()) {
+                return provider;
+            }
+        }
+
+        return null;
+    }
+
+    public synchronized CustomProviderDefinition resolveActiveDefinition() {
+        CustomProviderDefinition active = getActiveProvider();
+        if (active == null || !active.hasValidApiKey()) {
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
+        }
+        return active;
     }
 
     public ProviderVerificationResultDto verifyAndDiscoverModels(String baseUrl, String apiKey, AiProtocol protocol, int timeoutSeconds) {
-        if (protocol == AiProtocol.SIMULATED) {
-            return ProviderVerificationResultDto.success(200, List.of("heuristic-default", "heuristic-fast", "heuristic-deep"), "SIMULATED");
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            return ProviderVerificationResultDto.failure(400, "API key is required to connect to provider and discover models", protocol != null ? protocol.name() : "OPENAI");
         }
         if (protocol == AiProtocol.ANTHROPIC) {
             return AnthropicCompatibleAiAdapter.verifyAnthropicModels(this.httpClient, this.objectMapper, baseUrl, apiKey, timeoutSeconds);
@@ -165,7 +165,7 @@ public class AiProviderRegistry {
     public synchronized ProviderVerificationResultDto verifyRegisteredProvider(String providerId) {
         CustomProviderDefinition definition = getProvider(providerId);
         if (definition == null) {
-            return ProviderVerificationResultDto.failure(404, "Provider khong ton tai trong he thong: " + providerId, "UNKNOWN");
+            return ProviderVerificationResultDto.failure(404, "Provider does not exist in registry: " + providerId, "UNKNOWN");
         }
         ProviderVerificationResultDto result = verifyAndDiscoverModels(
             definition.baseUrl(),
@@ -189,11 +189,11 @@ public class AiProviderRegistry {
     }
 
     public AiAssistantPort createAdapterFor(CustomProviderDefinition definition) {
-        if (definition == null || definition.protocol() == AiProtocol.SIMULATED || !definition.hasValidApiKey()) {
-            return new SimulatedAiAdapter(config);
+        if (definition == null || !definition.hasValidApiKey()) {
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
         if (definition.protocol() == AiProtocol.ANTHROPIC) {
-            return new AnthropicCompatibleAiAdapter(definition, config, httpClient, objectMapper, new SimulatedAiAdapter(config));
+            return new AnthropicCompatibleAiAdapter(definition, config, httpClient, objectMapper);
         }
         // Default to OpenAI standard
         AiConfig providerConfig = new AiConfig();
@@ -201,6 +201,6 @@ public class AiProviderRegistry {
         providerConfig.setModel(definition.defaultModel());
         providerConfig.setApiKey(definition.apiKey());
         providerConfig.setTimeoutSeconds(definition.timeoutSeconds());
-        return new OpenAiCompatibleAiAdapter(providerConfig, httpClient, objectMapper, new SimulatedAiAdapter(config));
+        return new OpenAiCompatibleAiAdapter(providerConfig, httpClient, objectMapper);
     }
 }

@@ -219,10 +219,10 @@
             <button
               type="button"
               class="ai-suggest-btn"
-              :disabled="!form.title.trim()"
+              :disabled="!form.title.trim() || aiDraftLoading"
               @click="generateSmartCheckpoints"
             >
-              [🤖 AI SUGGEST SUBTASKS]
+              {{ aiDraftLoading ? '[AI PROCESSING...]' : '[🤖 AI SUGGEST SUBTASKS]' }}
             </button>
           </div>
 
@@ -324,6 +324,7 @@ const projectList = ref([]);
 const showNewProjectForm = ref(false);
 const newProjectName = ref('');
 const newProjectLoading = ref(false);
+const aiDraftLoading = ref(false);
 
 const inboxProject = computed(() => {
   return projectList.value.find(p => p.type === 'INBOX') || null;
@@ -444,50 +445,37 @@ function removeSubTask(index) {
   form.subTasks.splice(index, 1);
 }
 
-function generateSmartCheckpoints() {
-  const title = form.title.trim().toUpperCase();
+async function generateSmartCheckpoints() {
+  const title = form.title.trim();
   if (!title) return;
 
-  const suggestions = [];
-  if (title.includes('AUTH') || title.includes('KEY') || title.includes('SECURITY')) {
-    suggestions.push(
-      'Define authentication flow and requirements',
-      'Implement token validation and expiration checks',
-      'Write security tests and verify permissions'
-    );
-  } else if (title.includes('TEST') || title.includes('VERIFY') || title.includes('PARITY')) {
-    suggestions.push(
-      'Write unit tests for core business logic',
-      'Test edge cases and error handling',
-      'Verify all integration test suites pass'
-    );
-  } else if (title.includes('DEPLOY') || title.includes('RELEASE') || title.includes('SERVER')) {
-    suggestions.push(
-      'Check configuration and environment variables',
-      'Perform smoke test on staging environment',
-      'Verify deployment health checks and logs'
-    );
-  } else if (title.includes('DATABASE') || title.includes('MIGRATE') || title.includes('DATA')) {
-    suggestions.push(
-      'Review database schema and migration script',
-      'Run migration on test environment and verify integrity',
-      'Validate queries and performance benchmarks'
-    );
-  } else {
-    suggestions.push(
-      `Review requirements and plan implementation for ${form.title.trim()}`,
-      'Implement core changes and verify edge cases',
-      'Test functionality and review code'
-    );
-  }
+  aiDraftLoading.value = true;
+  try {
+    const res = await apiService.draftSubtasks({
+      title,
+      description: form.description.trim(),
+      projectId: form.projectId || null
+    });
 
-  suggestions.forEach((st) => {
-    if (!form.subTasks.some((existing) => existing.title === st)) {
-      form.subTasks.push({ title: st, completed: false });
+    const suggestions = (res && res.subTasks) ? res.subTasks : [];
+    if (suggestions.length === 0) {
+      emit('notify', 'AI returned no subtask suggestions for this title.', 'info');
+      return;
     }
-  });
 
-  emit('notify', `Added ${suggestions.length} suggested subtasks.`, 'info');
+    suggestions.forEach((st) => {
+      if (!form.subTasks.some((existing) => existing.title === st)) {
+        form.subTasks.push({ title: st, completed: false });
+      }
+    });
+
+    emit('notify', `AI added ${suggestions.length} subtasks!`, 'success');
+  } catch (err) {
+    console.error('AI draft subtasks failed:', err);
+    emit('notify', `AI Error: ${err.message}`, 'error');
+  } finally {
+    aiDraftLoading.value = false;
+  }
 }
 
 function resetForm() {

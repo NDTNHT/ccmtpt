@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 /**
  * Connects to any OpenAI-compatible API (OpenAI, DeepSeek, Ollama, OpenRouter, Pollinations)
- * via HTTP JSON requests, parsing structured responses with automatic fallback to SimulatedAiAdapter.
+ * via HTTP JSON requests, parsing structured responses.
  */
 public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     private static final Logger LOGGER = Logger.getLogger(OpenAiCompatibleAiAdapter.class.getName());
@@ -37,22 +37,19 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     private final AiConfig config;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
-    private final SimulatedAiAdapter fallbackAdapter;
 
     public OpenAiCompatibleAiAdapter(AiConfig config) {
         this(config, HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(config != null ? config.getTimeoutSeconds() : 30))
-            .build(), new ObjectMapper(), new SimulatedAiAdapter(config));
+            .build(), new ObjectMapper());
     }
 
     public OpenAiCompatibleAiAdapter(AiConfig config,
                                      HttpClient httpClient,
-                                     ObjectMapper objectMapper,
-                                     SimulatedAiAdapter fallbackAdapter) {
+                                     ObjectMapper objectMapper) {
         this.config = config != null ? config : AiConfig.defaults();
         this.httpClient = httpClient != null ? httpClient : HttpClient.newHttpClient();
         this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
-        this.fallbackAdapter = fallbackAdapter != null ? fallbackAdapter : new SimulatedAiAdapter(this.config);
     }
 
     @Override
@@ -76,7 +73,10 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
         int timeoutSeconds
     ) {
         if (baseUrl == null || baseUrl.isBlank()) {
-            return ProviderVerificationResultDto.failure(400, "Base URL khong duoc de trong", "OPENAI");
+            return ProviderVerificationResultDto.failure(400, "Base URL cannot be blank", "OPENAI");
+        }
+        if (apiKey == null || apiKey.isBlank()) {
+            return ProviderVerificationResultDto.failure(401, "API Key is required to verify provider models", "OPENAI");
         }
         String cleanUrl = baseUrl.replaceAll("/+$", "");
         String modelsEndpoint = cleanUrl.endsWith("/models") ? cleanUrl : cleanUrl + "/models";
@@ -88,9 +88,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
                 .timeout(Duration.ofSeconds(timeoutSeconds > 0 ? timeoutSeconds : 15))
                 .GET();
 
-            if (apiKey != null && !apiKey.isBlank()) {
-                requestBuilder.header("Authorization", "Bearer " + apiKey.trim());
-            }
+            requestBuilder.header("Authorization", "Bearer " + apiKey.trim());
 
             HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
             int status = response.statusCode();
@@ -99,19 +97,9 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
                 List<String> models = new ArrayList<>();
                 try {
                     JsonNode root = mapper.readTree(response.body());
-                    JsonNode dataNode = root.has("data") ? root.get("data") : (root.has("models") ? root.get("models") : null);
-                    if (dataNode != null && dataNode.isArray()) {
+                    JsonNode dataNode = root.has("data") ? root.get("data") : root;
+                    if (dataNode.isArray()) {
                         for (JsonNode item : dataNode) {
-                            if (item.has("id")) {
-                                models.add(item.get("id").asText());
-                            } else if (item.has("name")) {
-                                models.add(item.get("name").asText());
-                            } else if (item.isTextual()) {
-                                models.add(item.asText());
-                            }
-                        }
-                    } else if (root.isArray()) {
-                        for (JsonNode item : root) {
                             if (item.has("id")) {
                                 models.add(item.get("id").asText());
                             } else if (item.isTextual()) {
@@ -127,18 +115,18 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
 
             if (status == 401 || status == 403) {
                 String detail = extractErrorMessage(response.body(), mapper);
-                return ProviderVerificationResultDto.failure(status, "API Key khong hop le hoac bi tu choi truy cap (HTTP " + status + "): " + detail, "OPENAI");
+                return ProviderVerificationResultDto.failure(status, "Invalid API key or access denied (HTTP " + status + "): " + detail, "OPENAI");
             }
 
-            return ProviderVerificationResultDto.failure(status, "Server phan hoi HTTP " + status + ": " + extractErrorMessage(response.body(), mapper), "OPENAI");
+            return ProviderVerificationResultDto.failure(status, "Server responded with HTTP " + status + ": " + extractErrorMessage(response.body(), mapper), "OPENAI");
         } catch (Exception ex) {
-            return ProviderVerificationResultDto.failure(0, "Loi ket noi den " + modelsEndpoint + ": " + ex.getMessage(), "OPENAI");
+            return ProviderVerificationResultDto.failure(0, "Connection error to " + modelsEndpoint + ": " + ex.getMessage(), "OPENAI");
         }
     }
 
     private static String extractErrorMessage(String body, ObjectMapper mapper) {
         if (body == null || body.isBlank()) {
-            return "Khong co thong bao tu server";
+            return "No error details from server";
         }
         try {
             JsonNode root = mapper.readTree(body);
@@ -161,7 +149,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     public AiTaskDecompositionDto decomposeTask(Task task, Project project, String customPrompt) {
         Objects.requireNonNull(task, "Task cannot be null");
         if (!config.hasValidApiKey()) {
-            return fallbackAdapter.decomposeTask(task, project, customPrompt);
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
 
         String userPrompt = buildTaskContextPrompt(task, project) +
@@ -180,8 +168,8 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
             String rationale = root.has("rationale") ? root.get("rationale").asText() : "AI decomposed checklist.";
             return new AiTaskDecompositionDto(task.getId().value(), subTasks, rationale);
         } catch (Exception exception) {
-            LOGGER.log(Level.WARNING, "Failed to decompose task via LLM, using fallback: " + exception.getMessage());
-            return fallbackAdapter.decomposeTask(task, project, customPrompt);
+            LOGGER.log(Level.WARNING, "Failed to decompose task via LLM: " + exception.getMessage());
+            throw new IllegalStateException("AI task decomposition failed: " + exception.getMessage(), exception);
         }
     }
 
@@ -189,7 +177,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     public AiTaskDecompositionDto suggestSubTasks(Task task, Project project, String customPrompt) {
         Objects.requireNonNull(task, "Task cannot be null");
         if (!config.hasValidApiKey()) {
-            return fallbackAdapter.suggestSubTasks(task, project, customPrompt);
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
 
         String userPrompt = buildTaskContextPrompt(task, project) +
@@ -208,8 +196,8 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
             String rationale = root.has("rationale") ? root.get("rationale").asText() : "AI suggested subtasks.";
             return new AiTaskDecompositionDto(task.getId().value(), subTasks, rationale);
         } catch (Exception exception) {
-            LOGGER.log(Level.WARNING, "Failed to suggest subtasks via LLM, using fallback: " + exception.getMessage());
-            return fallbackAdapter.suggestSubTasks(task, project, customPrompt);
+            LOGGER.log(Level.WARNING, "Failed to suggest subtasks via LLM: " + exception.getMessage());
+            throw new IllegalStateException("AI subtask suggestion failed: " + exception.getMessage(), exception);
         }
     }
 
@@ -217,7 +205,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     public AiDeadlineEstimationDto estimateDeadline(Task task, Project project, String customPrompt) {
         Objects.requireNonNull(task, "Task cannot be null");
         if (!config.hasValidApiKey()) {
-            return fallbackAdapter.estimateDeadline(task, project, customPrompt);
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
 
         String userPrompt = buildTaskContextPrompt(task, project) +
@@ -235,8 +223,8 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
 
             return new AiDeadlineEstimationDto(task.getId().value(), estimatedHours, deadline, confidence, explanation);
         } catch (Exception exception) {
-            LOGGER.log(Level.WARNING, "Failed to estimate deadline via LLM, using fallback: " + exception.getMessage());
-            return fallbackAdapter.estimateDeadline(task, project, customPrompt);
+            LOGGER.log(Level.WARNING, "Failed to estimate deadline via LLM: " + exception.getMessage());
+            throw new IllegalStateException("AI deadline estimation failed: " + exception.getMessage(), exception);
         }
     }
 
@@ -244,7 +232,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     public AiPriorityRecommendationDto analyzePriority(Task task, Project project, Priority domainPriority, String customPrompt) {
         Objects.requireNonNull(task, "Task cannot be null");
         if (!config.hasValidApiKey()) {
-            return fallbackAdapter.analyzePriority(task, project, domainPriority, customPrompt);
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
 
         String userPrompt = buildTaskContextPrompt(task, project) +
@@ -273,8 +261,8 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
 
             return new AiPriorityRecommendationDto(task.getId().value(), aiProposed, domainPriority, effective, reasoning);
         } catch (Exception exception) {
-            LOGGER.log(Level.WARNING, "Failed to analyze priority via LLM, using fallback: " + exception.getMessage());
-            return fallbackAdapter.analyzePriority(task, project, domainPriority, customPrompt);
+            LOGGER.log(Level.WARNING, "Failed to analyze priority via LLM: " + exception.getMessage());
+            throw new IllegalStateException("AI priority evaluation failed: " + exception.getMessage(), exception);
         }
     }
 
@@ -282,7 +270,7 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
     public AiTaskSummaryDto generateSummary(Task task, Project project, String customPrompt) {
         Objects.requireNonNull(task, "Task cannot be null");
         if (!config.hasValidApiKey()) {
-            return fallbackAdapter.generateSummary(task, project, customPrompt);
+            throw new IllegalStateException("No active AI provider connected. Please configure and verify an API key in AI Settings.");
         }
 
         String userPrompt = buildTaskContextPrompt(task, project) +
@@ -304,8 +292,8 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
 
             return new AiTaskSummaryDto(task.getId().value(), task.getTitle().value(), summary, rate, highlights);
         } catch (Exception exception) {
-            LOGGER.log(Level.WARNING, "Failed to generate summary via LLM, using fallback: " + exception.getMessage());
-            return fallbackAdapter.generateSummary(task, project, customPrompt);
+            LOGGER.log(Level.WARNING, "Failed to generate summary via LLM: " + exception.getMessage());
+            throw new IllegalStateException("AI summary generation failed: " + exception.getMessage(), exception);
         }
     }
 
@@ -352,12 +340,15 @@ public class OpenAiCompatibleAiAdapter implements AiAssistantPort {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("HTTP " + response.statusCode() + ": " + response.body());
+            throw new IllegalStateException("AI provider returned HTTP " + response.statusCode() + ": " + extractErrorMessage(response.body(), objectMapper));
         }
 
         JsonNode responseJson = objectMapper.readTree(response.body());
-        String content = responseJson.path("choices").get(0).path("message").path("content").asText();
-
+        JsonNode choices = responseJson.path("choices");
+        if (!choices.isArray() || choices.isEmpty()) {
+            throw new IllegalStateException("AI provider response contains no completion choices");
+        }
+        String content = choices.get(0).path("message").path("content").asText();
         return parseCleanJson(content);
     }
 

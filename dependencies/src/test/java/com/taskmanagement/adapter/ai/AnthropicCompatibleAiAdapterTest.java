@@ -1,9 +1,5 @@
 package com.taskmanagement.adapter.ai;
 
-import com.taskmanagement.application.dto.ai.AiDeadlineEstimationDto;
-import com.taskmanagement.application.dto.ai.AiPriorityRecommendationDto;
-import com.taskmanagement.application.dto.ai.AiTaskDecompositionDto;
-import com.taskmanagement.application.dto.ai.AiTaskSummaryDto;
 import com.taskmanagement.domain.project.entity.Project;
 import com.taskmanagement.domain.task.entity.Task;
 import com.taskmanagement.domain.task.enums.Priority;
@@ -16,9 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AnthropicCompatibleAiAdapterTest {
@@ -33,7 +27,7 @@ class AnthropicCompatibleAiAdapterTest {
             "anthropic-test",
             "Claude Test",
             "https://api.anthropic.com/v1",
-            "", // Empty key forces safe fallback
+            "", // Empty key must fail
             "claude-3-5-sonnet-20241022"
         );
         AiConfig config = AiConfig.defaults();
@@ -50,50 +44,42 @@ class AnthropicCompatibleAiAdapterTest {
     }
 
     @Test
-    @DisplayName("Decompose task should safely fallback to SimulatedAiAdapter when key is missing")
-    void testDecomposeFallbackWhenNoApiKey() {
-        AiTaskDecompositionDto result = adapter.decomposeTask(task, project, null);
-
-        assertNotNull(result);
-        assertEquals(task.getId().value(), result.taskId());
-        assertFalse(result.subTasks().isEmpty());
+    @DisplayName("Decompose task should throw IllegalStateException when key is missing")
+    void testDecomposeThrowsWhenNoApiKey() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.decomposeTask(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Suggest subtasks should safely fallback when key is missing")
-    void testSuggestSubTasksFallback() {
-        AiTaskDecompositionDto result = adapter.suggestSubTasks(task, project, null);
-
-        assertNotNull(result);
-        assertFalse(result.subTasks().isEmpty());
+    @DisplayName("Suggest subtasks should throw IllegalStateException when key is missing")
+    void testSuggestSubTasksThrows() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.suggestSubTasks(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Estimate deadline should safely fallback when key is missing")
-    void testEstimateDeadlineFallback() {
-        AiDeadlineEstimationDto result = adapter.estimateDeadline(task, project, null);
-
-        assertNotNull(result);
-        assertTrue(result.estimatedHours() > 0);
-        assertNotNull(result.recommendedDeadline());
+    @DisplayName("Estimate deadline should throw IllegalStateException when key is missing")
+    void testEstimateDeadlineThrows() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.estimateDeadline(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Analyze priority should safely fallback when key is missing")
-    void testAnalyzePriorityFallback() {
-        AiPriorityRecommendationDto result = adapter.analyzePriority(task, project, Priority.HIGH, null);
-
-        assertNotNull(result);
-        assertEquals(Priority.HIGH, result.effectivePriority());
+    @DisplayName("Analyze priority should throw IllegalStateException when key is missing")
+    void testAnalyzePriorityThrows() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.analyzePriority(task, project, Priority.HIGH, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 
     @Test
-    @DisplayName("Generate summary should safely fallback when key is missing")
-    void testGenerateSummaryFallback() {
-        AiTaskSummaryDto result = adapter.generateSummary(task, project, null);
-
-        assertNotNull(result);
-        assertEquals("Build Claude Prompt Engine", result.title());
-        assertNotNull(result.summary());
+    @DisplayName("Generate summary should throw IllegalStateException when key is missing")
+    void testGenerateSummaryThrows() {
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> adapter.generateSummary(task, project, null));
+        assertTrue(ex.getMessage().contains("No active AI provider connected"));
     }
 }

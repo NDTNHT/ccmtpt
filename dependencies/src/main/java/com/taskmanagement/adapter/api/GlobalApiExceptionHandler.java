@@ -55,6 +55,11 @@ public class GlobalApiExceptionHandler {
         return failure(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", exception.getMessage());
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException exception) {
+        return failure(HttpStatus.BAD_REQUEST, "AI_SERVICE_UNAVAILABLE", exception.getMessage());
+    }
+
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
         ConstraintViolationException.class})
     public ResponseEntity<ApiResponse<Void>> handleMalformedRequest(Exception exception) {

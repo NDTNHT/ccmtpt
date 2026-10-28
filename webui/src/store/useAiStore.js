@@ -40,15 +40,6 @@ const state = reactive({
       defaultModel: 'claude-3-5-sonnet-20241022',
       availableModels: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
       active: false
-    },
-    {
-      id: 'simulated',
-      name: 'Offline Task Simulator',
-      protocol: 'OPENAI',
-      baseUrl: 'http://localhost:8081/v1',
-      defaultModel: 'task-evaluator-v1',
-      availableModels: ['task-evaluator-v1', 'deterministic-evaluator'],
-      active: false
     }
   ],
   activeProviderId: 'pollinations',
@@ -154,37 +145,18 @@ export function useAiStore() {
     state.verification.loading = true;
     addLog('TEST_KEY', `Pinging verification gateway: ${baseUrl}/models...`, 'RUNNING');
     try {
-      let result;
-      try {
-        result = await apiService.verifyProvider({ baseUrl, apiKey, protocol, timeoutSeconds });
-      } catch (err) {
-        if (!apiKey || apiKey.trim() === '') {
-          throw new Error('API Key is required to verify provider models.');
-        }
-        // Fallback simulation for live UI interactivity
-        result = {
-          valid: true,
-          message: 'Target verified successfully (Gateway Handshake ACK)',
-          discoveredModels: [
-            'qwen/qwen3.7-flash',
-            'openai/gpt-4o',
-            'openai/gpt-4o-mini',
-            'anthropic/claude-3-5-sonnet',
-            'anthropic/claude-3-5-haiku',
-            'deepseek/deepseek-chat',
-            'deepseek/deepseek-coder',
-            'meta-llama/llama-3.3-70b-instruct'
-          ],
-          modelCount: 237,
-          protocol: protocol,
-          latencyMs: 284
-        };
+      if (!apiKey || apiKey.trim() === '') {
+        throw new Error('API Key is required to verify provider models.');
+      }
+      const result = await apiService.verifyProvider({ baseUrl, apiKey, protocol, timeoutSeconds });
+      if (!result || !result.valid) {
+        throw new Error(result?.message || 'Provider connection rejected by remote gateway.');
       }
 
       const models = result.availableModels || result.discoveredModels || [];
       state.verification = {
         loading: false,
-        valid: !!result.valid,
+        valid: true,
         discoveredModelsCount: models.length,
         discoveredModelsList: models,
         lastChecked: new Date().toLocaleTimeString(),
@@ -253,17 +225,11 @@ export function useAiStore() {
   }
 
   // AI Operations
-  async function runAiOp(opName, apiFn, taskId, localFallbackGenerator) {
+  async function runAiOp(opName, apiFn, taskId) {
     state.executingAiOp = true;
     addLog('AI_DISPATCH', `Dispatching ${opName} for Target [${taskId}]...`, 'RUNNING');
     try {
-      let result;
-      try {
-        result = await apiFn(taskId, state.customSystemPrompt);
-      } catch (err) {
-        console.warn(`${opName} remote failure, generating deterministic tactical response:`, err.message);
-        result = localFallbackGenerator();
-      }
+      const result = await apiFn(taskId, state.customSystemPrompt);
       state.activeAiResult = {
         type: opName,
         taskId,
@@ -273,124 +239,35 @@ export function useAiStore() {
       addLog('AI_RESOLVED', `${opName} completed successfully. Telemetry payload bound.`, 'SUCCESS');
       return result;
     } catch (error) {
-      addLog('AI_ERR', `${opName} aborted: ${error.message}`, 'ERROR');
+      addLog('AI_ERR', `${opName} failed: ${error.message}`, 'ERROR');
       throw error;
     } finally {
       state.executingAiOp = false;
     }
   }
 
-  async function decomposeTask(taskId, taskTitle) {
-    return runAiOp(
-      'DECOMPOSE',
-      apiService.decomposeTask,
-      taskId,
-      () => ({
-        taskId,
-        subTasks: [
-          `[CRITICAL] Initialize sub-routine diagnostics for ${taskTitle}`,
-          `[STAGING] Allocate thermal buffer and execute step verification`,
-          `[ACCEPTANCE] Verify telemetry checksum and register output artifact`
-        ],
-        rationale: 'Generated structured 3-phase execution checklist ensuring zero telemetry drift.'
-      })
-    );
+  async function decomposeTask(taskId) {
+    return runAiOp('DECOMPOSE', apiService.decomposeTask, taskId);
   }
 
-  async function suggestSubTasks(taskId, taskTitle) {
-    return runAiOp(
-      'SUGGEST_SUBTASKS',
-      apiService.suggestSubTasks,
-      taskId,
-      () => ({
-        taskId,
-        subTasks: [
-          `Telemetry sanity sweep for ${taskTitle}`,
-          `Benchmarking I/O throughput against target threshold`,
-          `Post-execution telemetry log broadcast`
-        ],
-        rationale: 'Suggested operational micro-actions to maintain sub-millisecond dispatch.'
-      })
-    );
+  async function suggestSubTasks(taskId) {
+    return runAiOp('SUGGEST_SUBTASKS', apiService.suggestSubTasks, taskId);
   }
 
   async function estimateDeadline(taskId) {
-    return runAiOp(
-      'ESTIMATE_DEADLINE',
-      apiService.estimateDeadline,
-      taskId,
-      () => ({
-        taskId,
-        recommendedDeadline: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-        estimatedHours: 18.5,
-        confidenceScore: 0.94,
-        reasoning: 'Calculated using historical velocity index and structural complexity factor of 1.42.'
-      })
-    );
+    return runAiOp('ESTIMATE_DEADLINE', apiService.estimateDeadline, taskId);
   }
 
   async function analyzePriority(taskId) {
-    return runAiOp(
-      'AUTO_PRIORITY',
-      apiService.analyzePriority,
-      taskId,
-      () => ({
-        taskId,
-        recommendedPriority: 'CRITICAL',
-        urgencyScore: 88,
-        impactScore: 92,
-        reasoning: 'Critical operational dependency detected on downstream pipeline subsystems.'
-      })
-    );
+    return runAiOp('AUTO_PRIORITY', apiService.analyzePriority, taskId);
   }
 
   async function generateSummary(taskId) {
-    return runAiOp(
-      'SUMMARY',
-      apiService.generateSummary,
-      taskId,
-      () => ({
-        taskId,
-        summary: 'Mission package verified: clean architecture decoupling intact, endpoints mapped, tests green.',
-        keyPoints: [
-          'Zero-drift execution verified',
-          'Clean Architecture boundary maintained',
-          'Full-output compliance satisfied'
-        ]
-      })
-    );
+    return runAiOp('SUMMARY', apiService.generateSummary, taskId);
   }
 
-  async function runFullAnalysis(taskId, taskTitle) {
-    return runAiOp(
-      'FULL_ANALYSIS',
-      apiService.analyzeTask,
-      taskId,
-      () => ({
-        taskId,
-        decomposition: {
-          subTasks: [
-            `Phase 1: Environment verification for ${taskTitle}`,
-            `Phase 2: Execution pipeline verification`,
-            `Phase 3: Validation and telemetry checkpoint`
-          ]
-        },
-        deadlineEstimation: {
-          recommendedDeadline: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-          estimatedHours: 24.0,
-          confidenceScore: 0.96
-        },
-        priorityRecommendation: {
-          recommendedPriority: 'HIGH',
-          urgencyScore: 85,
-          impactScore: 90
-        },
-        summary: {
-          summary: 'Holistic AI system audit completed. Operational clearance granted.',
-          keyPoints: ['Checklist generated', 'Deadline calculated', 'Priority adjusted']
-        }
-      })
-    );
+  async function runFullAnalysis(taskId) {
+    return runAiOp('FULL_ANALYSIS', apiService.analyzeTask, taskId);
   }
 
   return {

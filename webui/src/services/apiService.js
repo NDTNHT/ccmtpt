@@ -17,7 +17,8 @@ async function request(endpoint, options = {}) {
   try {
     const response = await fetch(url, config);
     if (!response.ok) {
-      let errorMsg = `HTTP Error ${response.status}: ${response.statusText}`;
+      const statusText = response.statusText || (response.status === 404 ? 'Not Found' : response.status === 500 ? 'Internal Server Error' : '');
+      let errorMsg = `HTTP Error ${response.status}${statusText ? ': ' + statusText : ''}`;
       try {
         const errorJson = await response.json();
         if (errorJson.error && errorJson.error.details) {

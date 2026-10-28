@@ -24,6 +24,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalApiExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalApiExceptionHandler.class);
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException exception) {
+        return failure(HttpStatus.NOT_FOUND, "ENDPOINT_NOT_FOUND", "Endpoint not found: " + exception.getResourcePath());
+    }
+
     @ExceptionHandler({TaskNotFoundException.class, ProjectNotFoundException.class})
     public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException exception) {
         return failure(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", exception.getMessage());

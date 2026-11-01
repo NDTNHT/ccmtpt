@@ -304,6 +304,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
+import { draftChecklist } from '../../services/mockAi.js';
 import { apiService } from '../../services/apiService.js';
 
 const props = defineProps({
@@ -315,7 +316,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'created', 'notify']);
 
-const { createTask } = useTaskStore();
+const { createTask, state: taskState } = useTaskStore();
 
 const titleInputRef = ref(null);
 const isSubmitting = ref(false);
@@ -345,8 +346,7 @@ const selectedProjectType = computed(() => {
 const priorityOptions = [
   { value: 'LOW', label: 'LOW' },
   { value: 'MEDIUM', label: 'MEDIUM' },
-  { value: 'HIGH', label: 'HIGH' },
-  { value: 'CRITICAL', label: 'CRITICAL' }
+  { value: 'HIGH', label: 'HIGH' }
 ];
 
 const form = reactive({
@@ -380,6 +380,7 @@ const titleError = computed(() => {
 });
 
 async function loadProjects() {
+  if (taskState.localMode) { projectList.value = []; form.projectId = null; return; }
   try {
     const data = await apiService.getProjects();
     if (Array.isArray(data)) {
@@ -396,6 +397,7 @@ async function loadProjects() {
 }
 
 async function handleCreateRegularProject() {
+  if (taskState.localMode) { emit('notify', 'Tạo dự án cần kết nối máy chủ.', 'info'); return; }
   const name = newProjectName.value.trim();
   if (!name) return;
   newProjectLoading.value = true;
@@ -451,7 +453,7 @@ async function generateSmartCheckpoints() {
 
   aiDraftLoading.value = true;
   try {
-    const res = await apiService.draftSubtasks({
+    const res = taskState.localMode ? { subTasks: draftChecklist(title, form.description) } : await apiService.draftSubtasks({
       title,
       description: form.description.trim(),
       projectId: form.projectId || null

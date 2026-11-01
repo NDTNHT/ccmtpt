@@ -40,9 +40,19 @@ public class TaskApiController {
             request.priority(),
             request.projectId()
         );
-        TaskOutputDTO output = taskInput.createTask(input);
+        TaskOutputDTO output = taskInput.createTask(input, request.subTasks());
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success("Task created successfully", output));
+    }
+
+    public record SubTaskStatusRequest(@jakarta.validation.constraints.NotNull Boolean completed) {}
+
+    @PatchMapping("/{taskId}/subtasks/{subTaskId}")
+    public ApiResponse<TaskOutputDTO> setSubTaskCompleted(
+        @PathVariable UUID taskId, @PathVariable UUID subTaskId,
+        @Valid @RequestBody SubTaskStatusRequest request
+    ) {
+        return ApiResponse.success("Checklist updated", taskInput.setSubTaskCompleted(taskId, subTaskId, request.completed()));
     }
 
     @GetMapping

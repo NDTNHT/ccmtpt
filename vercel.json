@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm --prefix webui ci",
+  "buildCommand": "npm --prefix webui run build",
+  "outputDirectory": "webui/dist",
+  "functions": {
+    "api/[...path].mjs": { "maxDuration": 60 }
+  }
+}

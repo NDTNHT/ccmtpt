@@ -7,11 +7,12 @@ const BASE_URL = '/api';
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
   const config = {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(sessionStorage.getItem('task-api-key') ? { 'X-API-Key': sessionStorage.getItem('task-api-key') } : {}),
       ...options.headers,
     },
-    ...options,
   };
 
   try {
@@ -28,7 +29,7 @@ async function request(endpoint, options = {}) {
         } else if (errorJson.message) {
           errorMsg = errorJson.message;
         }
-      } catch (ignored) {
+      } catch {
       }
       throw new Error(errorMsg);
     }
@@ -53,6 +54,9 @@ export const apiService = {
   cancelTask: (id) => request(`/tasks/${id}/cancel`, { method: 'POST' }),
   refreshPriority: (id) => request(`/tasks/${id}/refresh-priority`, { method: 'POST' }),
 
+  setSubTaskCompleted: (taskId, subTaskId, completed) => request(`/tasks/${taskId}/subtasks/${subTaskId}`, {
+    method: 'PATCH', body: JSON.stringify({ completed })
+  }),
   // Projects Endpoints
   getProjects: () => request('/projects'),
   createProject: (payload) => request('/projects', {

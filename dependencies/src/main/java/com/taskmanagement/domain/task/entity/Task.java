@@ -276,6 +276,13 @@ public class Task extends AggregateRoot<TaskId> {
         return subTask;
     }
 
+    public void setSubTaskCompleted(UUID subTaskId, boolean completed) {
+        ensureMutable("update a subtask of");
+        SubTask subTask = findSubTask(subTaskId)
+            .orElseThrow(() -> new TaskValidationException("SubTask not found: " + subTaskId));
+        subTask.setCompleted(completed);
+    }
+
     public void completeSubTask(UUID subTaskId) {
         ensureMutable("complete a subtask of");
         SubTask subTask = findSubTask(subTaskId)

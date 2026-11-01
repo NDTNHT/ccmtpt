@@ -13,6 +13,10 @@ import java.util.UUID;
 public interface TaskInputBoundary {
     TaskOutputDTO createTask(TaskInputDTO input);
 
+    TaskOutputDTO createTask(TaskInputDTO input, List<String> subTasks);
+
+    TaskOutputDTO setSubTaskCompleted(UUID taskId, UUID subTaskId, boolean completed);
+
     TaskOutputDTO startTask(UUID taskId);
 
     TaskOutputDTO completeTask(UUID taskId);

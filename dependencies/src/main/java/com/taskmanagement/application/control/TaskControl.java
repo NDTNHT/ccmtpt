@@ -76,6 +76,11 @@ public class TaskControl implements TaskInputBoundary {
 
     @Override
     public TaskOutputDTO createTask(TaskInputDTO input) {
+        return createTask(input, List.of());
+    }
+
+    @Override
+    public TaskOutputDTO createTask(TaskInputDTO input, List<String> subTasks) {
         Objects.requireNonNull(input, "Task input cannot be null");
 
         TaskTitle title = new TaskTitle(input.title());
@@ -92,8 +97,14 @@ public class TaskControl implements TaskInputBoundary {
             : priorityCalculator.calculatePriority(deadline, null, project);
 
         Task task = Task.create(title, input.description(), deadline, priority, project.getId());
+        if (subTasks != null) subTasks.forEach(task::addSubTask);
         saveAndDispatch(task);
         return present(task);
+    }
+
+    @Override
+    public TaskOutputDTO setSubTaskCompleted(UUID taskId, UUID subTaskId, boolean completed) {
+        return mutate(taskId, task -> task.setSubTaskCompleted(subTaskId, completed));
     }
 
     @Override

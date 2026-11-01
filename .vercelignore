@@ -1,0 +1,14 @@
+.git
+.agents
+.aws
+.codex
+.vscode
+target
+data
+dependencies
+docs
+webui/node_modules
+webui/test-results
+webui/playwright-report
+.env*
+**/.env*

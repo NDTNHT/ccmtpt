@@ -9,7 +9,8 @@
         <span class="telemetry-item">
           <span class="status-led" :class="aiState.verification.valid ? 'green' : 'amber'"></span>
           <span class="telemetry-label">AI GATEWAY:</span>
-          <span v-if="aiState.verification.valid" class="telemetry-val text-green">
+          <span v-if="taskState.localMode" class="telemetry-val text-green">LOCAL MOCK</span>
+          <span v-else-if="aiState.verification.valid" class="telemetry-val text-green">
             ONLINE [{{ aiState.verification.discoveredModelsCount }} MODELS]
           </span>
           <span v-else class="telemetry-val text-amber">
@@ -38,7 +39,7 @@
 
       <div class="engine-indicator-badge">
         <span class="indicator-prefix">[MODEL]</span>
-        <span class="indicator-val text-amber">{{ aiState.config.model }}</span>
+        <span class="indicator-val text-amber">{{ taskState.localMode ? 'LOCAL MOCK' : aiState.config.model }}</span>
       </div>
     </div>
   </header>
@@ -49,10 +50,11 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
 import { useAiStore } from '../../store/useAiStore.js';
 
-const { taskStats } = useTaskStore();
+const { taskStats, state: taskState } = useTaskStore();
 const { state: aiState, activeProvider } = useAiStore();
 
 const activeEngine = computed(() => {
+  if (taskState.localMode) return 'LOCAL MOCK / RULE-BASED DEMO';
   return `${activeProvider.value.name.toUpperCase()} (${aiState.config.model})`;
 });
 
@@ -165,5 +167,15 @@ onUnmounted(() => {
 
 .indicator-prefix {
   color: var(--color-text-muted);
+}
+@media (max-width: 640px) {
+  .tactical-header { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
+  .brand-logo { flex-wrap: wrap; gap: 8px; }
+  .system-title { font-size: .9rem; white-space: normal; }
+  .system-telemetry { flex-wrap: wrap; gap: 8px; }
+  .telemetry-item { flex-wrap: wrap; }
+  .telemetry-divider { display: none; }
+  .header-actions { align-items: flex-start; }
+  .status-badge-group { flex-wrap: wrap; }
 }
 </style>

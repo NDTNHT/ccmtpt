@@ -244,6 +244,6 @@ Bộ test bao phủ: nghiệp vụ công việc và dự án, tính độ ưu ti
 trùng tiêu đề, persistence SQLite/JSON, presenter, xác thực API, xử lý input console và các
 trường hợp lỗi của API.
 
-## 11. Phiên bản
+## 11. Phiên bản.
 
 `1.0.0`

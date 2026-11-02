@@ -76,10 +76,18 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: webui/package-lock.json
+          cache-dependency-path: |
+            webui/package-lock.json
+            webui/package.json
 
-      - name: Cai dependencies dung lockfile
-        run: npm ci
+      - name: Cai dependencies (dung lockfile neu co)
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo package-lock.json khong co trong repo: dung npm install.
+            npm install --no-audit --no-fund
+          fi
 
       - name: Lint
         run: npm run lint

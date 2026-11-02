@@ -6,7 +6,7 @@ export const STORAGE_KEY = 'task-management:v1';
 export function normalizeTask(task) {
   return { ...task, id: String(task.taskId || task.id),
     status: task.status === 'COMPLETED' ? 'DONE' : task.status,
-    subTasks: (task.subTasks || []).map(s => ({ ...s, id: String(s.subTaskId || s.id) })) };
+    subTasks: (task.subTasks || []).map(s => ({ ...s, id: String(s.subTaskId || s.id), completed: s.completed !== undefined ? Boolean(s.completed) : Boolean(s.isCompleted) })) };
 }
 const useInternalTaskStore = defineStore('tasks', () => {
   const state = reactive({ tasks: [], selectedTask: null, hoveredTask: null,
@@ -94,8 +94,13 @@ const useInternalTaskStore = defineStore('tasks', () => {
     const titles = (payload.subTasks || []).map(s => (typeof s === 'string' ? s : s.title).trim());
     if (titles.length > 100 || titles.some(t => !t || t.length > 200) || new Set(titles.map(t => t.toLowerCase())).size !== titles.length)
       throw new Error('Checklist phải có nội dung, tối đa 200 ký tự và không trùng nhau.');
+    let dueDate = null;
+    if (payload.dueDate) {
+      const d = new Date(payload.dueDate);
+      if (!isNaN(d.getTime())) dueDate = d.toISOString();
+    }
     const input = { title, description: payload.description?.trim() || '', priority: payload.priority || 'MEDIUM',
-      dueDate: payload.dueDate ? new Date(payload.dueDate).toISOString() : null, projectId: payload.projectId || null,
+      dueDate, projectId: payload.projectId || null,
       subTasks: titles };
     state.loading = true;
     try {

@@ -143,7 +143,7 @@
                 <span class="input-label">DUE DATE:</span>
                 <input v-model="newTask.dueDate" type="date" class="tactical-date-input" />
               </div>
-              <button type="submit" class="tactical-btn-submit" :disabled="!newTask.title.trim()">
+              <button type="submit" class="tactical-btn-submit" :disabled="!newTask.title.trim() || newTask.title.trim().length < 3 || newTask.title.trim().length > 100">
                 [CREATE TASK]
               </button>
             </div>
@@ -340,10 +340,14 @@ function handleTaskCreated(task) {
 }
 
 async function handleCreateTask() {
-  if (!newTask.value.title.trim()) return;
+  const title = newTask.value.title.trim();
+  if (title.length < 3 || title.length > 100) {
+    emit('notify', 'Tiêu đề task phải từ 3 đến 100 ký tự.', 'error');
+    return;
+  }
   try {
-    const created = await createTask({ ...newTask.value });
-    emit('notify', `Task "${newTask.value.title}" created successfully.`, 'success');
+    const created = await createTask({ ...newTask.value, title });
+    emit('notify', `Task "${created.title}" created successfully.`, 'success');
     selectTask(created);
     newTask.value = {
       title: '',

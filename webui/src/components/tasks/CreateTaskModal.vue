@@ -390,7 +390,20 @@ const titleError = computed(() => {
 });
 
 async function loadProjects() {
-  if (taskState.localMode) { projectList.value = []; form.projectId = null; return; }
+  if (taskState.localMode) {
+    try {
+      const local = JSON.parse(localStorage.getItem('task-management:projects:local') || '[]');
+      projectList.value = [
+        { id: 'inbox-local', name: 'INBOX SECTOR', type: 'INBOX' },
+        ...local
+      ];
+      if (!form.projectId) form.projectId = 'inbox-local';
+    } catch {
+      projectList.value = [{ id: 'inbox-local', name: 'INBOX SECTOR', type: 'INBOX' }];
+      form.projectId = 'inbox-local';
+    }
+    return;
+  }
   try {
     const data = await apiService.getProjects();
     if (Array.isArray(data)) {
@@ -407,11 +420,27 @@ async function loadProjects() {
 }
 
 async function handleCreateRegularProject() {
-  if (taskState.localMode) { emit('notify', 'Tạo dự án cần kết nối máy chủ.', 'info'); return; }
   const name = newProjectName.value.trim();
   if (!name) return;
   newProjectLoading.value = true;
   try {
+    if (taskState.localMode) {
+      const newProj = {
+        id: crypto.randomUUID(),
+        name: name.toUpperCase(),
+        description: 'Tactical regular mission sector (Local)',
+        type: 'REGULAR'
+      };
+      const existing = JSON.parse(localStorage.getItem('task-management:projects:local') || '[]');
+      existing.push(newProj);
+      localStorage.setItem('task-management:projects:local', JSON.stringify(existing));
+      await loadProjects();
+      form.projectId = newProj.id;
+      showNewProjectForm.value = false;
+      newProjectName.value = '';
+      emit('notify', `Regular Sector "${newProj.name}" registered in local workspace.`, 'success');
+      return;
+    }
     const created = await apiService.createProject({
       name: name.toUpperCase(),
       description: `Tactical regular mission sector`

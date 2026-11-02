@@ -19,6 +19,15 @@ export default defineConfig({
       }
     }
   },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: process.env.API_PROXY_TARGET || 'http://localhost:8081',
+        changeOrigin: true
+      }
+    }
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true

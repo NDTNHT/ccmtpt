@@ -66,8 +66,16 @@ const useInternalTaskStore = defineStore('tasks', () => {
       const summaries = new Map(state.tasks.map(t => [t.id, t.aiSummary]));
       state.tasks = data.map(t => ({ ...normalizeTask(t), aiSummary: summaries.get(String(t.taskId || t.id)) }));
       refreshSelection();
-    } catch (err) { state.error = `Không kết nối được máy chủ: ${err.message}. Dữ liệu cache chỉ để xem; chọn chế độ local để làm việc độc lập.`; }
-    finally { state.loading = false; }
+        } catch (err) {
+      console.warn('Backend server unreachable:', err.message);
+      const is404 = err.message && (err.message.includes('404') || err.message.includes('Failed to fetch'));
+      if (is404) {
+        state.error = `Không tìm thấy máy chủ backend API (${err.message}). Đã tự động kích hoạt chế độ LOCAL MOCK (lưu trên trình duyệt).`;
+        await setLocalMode(true);
+      } else {
+        state.error = `Không kết nối được máy chủ: ${err.message}. Dữ liệu cache chỉ để xem; chọn chế độ local để làm việc độc lập.`;
+      }
+    } finally { state.loading = false; }
   }
   function refreshSelection() {
     for (const key of ['selectedTask', 'hoveredTask']) {

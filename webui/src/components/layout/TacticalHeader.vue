@@ -50,7 +50,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
 import { useAiStore } from '../../store/useAiStore.js';
 
-const { taskStats, state: taskState } = useTaskStore();
+const { taskStats, state: taskState, setLocalMode } = useTaskStore();
 const { state: aiState, activeProvider } = useAiStore();
 
 const activeEngine = computed(() => {
@@ -178,4 +178,65 @@ onUnmounted(() => {
   .header-actions { align-items: flex-start; }
   .status-badge-group { flex-wrap: wrap; }
 }
+
+.workspace-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #141414;
+  border: 1px solid #444444;
+  padding: 6px 12px;
+  font-family: var(--font-mono-code);
+  font-size: 0.75rem;
+  color: #DDDDDD;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.workspace-toggle-btn:hover {
+  border-color: var(--color-neon-amber);
+  background: #1E1E1E;
+}
+
+.workspace-toggle-btn.mode-local {
+  border-color: rgba(52, 199, 89, 0.6);
+}
+
+.workspace-toggle-btn.mode-server {
+  border-color: rgba(255, 179, 0, 0.6);
+}
+
+.mode-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mode-led.led-local {
+  background: #34C759;
+  box-shadow: 0 0 6px #34C759;
+}
+
+.mode-led.led-server {
+  background: var(--color-neon-amber);
+  box-shadow: 0 0 6px var(--color-neon-amber);
+}
+
+.mode-label {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.mode-action {
+  font-size: 0.7rem;
+  color: #888888;
+  padding-left: 4px;
+  border-left: 1px solid #333333;
+}
+
+.workspace-toggle-btn:hover .mode-action {
+  color: #FFFFFF;
+}
+
 </style>

@@ -44,10 +44,10 @@ const { fetchConfig, fetchProviders } = useAiStore();
 
 onMounted(async () => {
   try {
-    await Promise.allSettled([
-      fetchTasks(),
-      ...(taskState.localMode ? [] : [fetchConfig(), fetchProviders()])
-    ]);
+    await fetchTasks();
+    if (!taskState.localMode) {
+      await Promise.allSettled([fetchConfig(), fetchProviders()]);
+    }
   } catch (err) {
     console.warn('Initial telemetry synchronization note:', err);
   }

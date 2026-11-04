@@ -23,7 +23,7 @@
     </div>
 
     <div class="nav-system-status">
-      <span class="status-code">TASK MANAGEMENT // PERSONAL WORKSPACE</span>
+      <span class="status-code">SYSTEM READY // BACKEND CONNECTED</span>
     </div>
   </nav>
 </template>
@@ -103,11 +103,5 @@ defineEmits(['update:currentTab']);
 .status-code {
   border-left: 2px solid var(--color-border-heavy);
   padding-left: 12px;
-}
-@media (max-width: 640px) {
-  .tactical-nav { padding: 0; }
-  .nav-track { width: 100%; }
-  .nav-tab { flex: 1; min-width: 0; padding: 12px 8px; flex-wrap: wrap; justify-content: center; }
-  .nav-system-status { display: none; }
 }
 </style>

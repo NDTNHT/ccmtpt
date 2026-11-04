@@ -66,27 +66,6 @@ class TaskControlTest {
     }
 
     @Test
-    void shouldPersistInitialChecklistAndAllowCheckingAndUnchecking() {
-        TaskOutputDTO created = control.createTask(input("Checklist task", null, Priority.MEDIUM, newProject()),
-            List.of("Draft", "Review"));
-        assertEquals(2, control.getTask(created.taskId()).subTasks().size());
-        UUID subId = created.subTasks().get(0).id();
-        assertTrue(control.setSubTaskCompleted(created.taskId(), subId, true).subTasks().get(0).completed());
-        assertEquals(false, control.setSubTaskCompleted(created.taskId(), subId, false).subTasks().get(0).completed());
-        control.startTask(created.taskId());
-        control.completeTask(created.taskId());
-        assertThrows(com.taskmanagement.domain.task.exception.InvalidTaskStateTransitionException.class,
-            () -> control.setSubTaskCompleted(created.taskId(), subId, true));
-    }
-
-    @Test
-    void shouldNotPersistTaskWhenInitialChecklistIsInvalid() {
-        assertThrows(TaskValidationException.class, () -> control.createTask(
-            input("Invalid checklist", null, Priority.MEDIUM, newProject()), List.of("Draft", "draft")));
-        assertTrue(control.getTasks().isEmpty());
-    }
-
-    @Test
     @DisplayName("Create: persists the task and dispatches exactly one TaskCreatedEvent")
     void shouldCreateTaskAndDispatchEventOnce() {
         UUID projectId = newProject();

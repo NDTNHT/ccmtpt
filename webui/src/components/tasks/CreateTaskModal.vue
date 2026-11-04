@@ -244,10 +244,6 @@
             </button>
           </div>
 
-          <div v-if="subTaskError" class="validation-error subtask-validation-error">
-            <span class="error-badge">[!]</span> {{ subTaskError }}
-          </div>
-
           <div v-if="form.subTasks.length > 0" class="subtask-list">
             <div
               v-for="(st, index) in form.subTasks"
@@ -270,10 +266,6 @@
           <div v-else class="empty-subtasks-note">
             [ No subtasks added yet — enter above or use AI to generate ]
           </div>
-        </div>
-
-        <div v-if="formError" class="validation-error modal-form-error" role="alert">
-          <span class="error-badge">[ERROR]</span> {{ formError }}
         </div>
 
         <!-- Modal Footer Actions -->
@@ -312,7 +304,6 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
-import { draftChecklist } from '../../services/mockAi.js';
 import { apiService } from '../../services/apiService.js';
 
 const props = defineProps({
@@ -324,7 +315,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'created', 'notify']);
 
-const { createTask, state: taskState } = useTaskStore();
+const { createTask } = useTaskStore();
 
 const titleInputRef = ref(null);
 const isSubmitting = ref(false);
@@ -334,8 +325,6 @@ const showNewProjectForm = ref(false);
 const newProjectName = ref('');
 const newProjectLoading = ref(false);
 const aiDraftLoading = ref(false);
-const formError = ref('');
-const subTaskError = ref('');
 
 const inboxProject = computed(() => {
   return projectList.value.find(p => p.type === 'INBOX') || null;
@@ -356,7 +345,8 @@ const selectedProjectType = computed(() => {
 const priorityOptions = [
   { value: 'LOW', label: 'LOW' },
   { value: 'MEDIUM', label: 'MEDIUM' },
-  { value: 'HIGH', label: 'HIGH' }
+  { value: 'HIGH', label: 'HIGH' },
+  { value: 'CRITICAL', label: 'CRITICAL' }
 ];
 
 const form = reactive({
@@ -390,20 +380,6 @@ const titleError = computed(() => {
 });
 
 async function loadProjects() {
-  if (taskState.localMode) {
-    try {
-      const local = JSON.parse(localStorage.getItem('task-management:projects:local') || '[]');
-      projectList.value = [
-        { id: 'inbox-local', name: 'INBOX SECTOR', type: 'INBOX' },
-        ...local
-      ];
-      if (!form.projectId) form.projectId = 'inbox-local';
-    } catch {
-      projectList.value = [{ id: 'inbox-local', name: 'INBOX SECTOR', type: 'INBOX' }];
-      form.projectId = 'inbox-local';
-    }
-    return;
-  }
   try {
     const data = await apiService.getProjects();
     if (Array.isArray(data)) {
@@ -424,23 +400,6 @@ async function handleCreateRegularProject() {
   if (!name) return;
   newProjectLoading.value = true;
   try {
-    if (taskState.localMode) {
-      const newProj = {
-        id: crypto.randomUUID(),
-        name: name.toUpperCase(),
-        description: 'Tactical regular mission sector (Local)',
-        type: 'REGULAR'
-      };
-      const existing = JSON.parse(localStorage.getItem('task-management:projects:local') || '[]');
-      existing.push(newProj);
-      localStorage.setItem('task-management:projects:local', JSON.stringify(existing));
-      await loadProjects();
-      form.projectId = newProj.id;
-      showNewProjectForm.value = false;
-      newProjectName.value = '';
-      emit('notify', `Regular Sector "${newProj.name}" registered in local workspace.`, 'success');
-      return;
-    }
     const created = await apiService.createProject({
       name: name.toUpperCase(),
       description: `Tactical regular mission sector`
@@ -463,8 +422,6 @@ onMounted(() => {
 
 watch(() => props.isOpen, (open) => {
   if (open) {
-    formError.value = '';
-    subTaskError.value = '';
     loadProjects();
     nextTick(() => {
       if (titleInputRef.value) {
@@ -474,26 +431,9 @@ watch(() => props.isOpen, (open) => {
   }
 });
 
-watch(() => form.title, () => {
-  if (formError.value) formError.value = '';
-});
-
-watch(() => newSubTaskTitle.value, () => {
-  if (subTaskError.value) subTaskError.value = '';
-});
-
 function handleAddSubTask() {
-  subTaskError.value = '';
   const title = newSubTaskTitle.value.trim();
   if (!title) return;
-  if (title.length > 200) {
-    subTaskError.value = 'Checklist item cannot exceed 200 characters.';
-    return;
-  }
-  if (form.subTasks.some(st => st.title.toLowerCase() === title.toLowerCase())) {
-    subTaskError.value = 'Checklist item already exists in this task.';
-    return;
-  }
   form.subTasks.push({
     title,
     completed: false
@@ -510,23 +450,12 @@ async function generateSmartCheckpoints() {
   if (!title) return;
 
   aiDraftLoading.value = true;
-  subTaskError.value = '';
   try {
-    let res;
-    if (taskState.localMode) {
-      res = { subTasks: draftChecklist(title, form.description) };
-    } else {
-      try {
-        res = await apiService.draftSubtasks({
-          title,
-          description: form.description.trim(),
-          projectId: form.projectId || null
-        });
-      } catch (apiErr) {
-        console.warn('Backend AI draft failed, falling back to local heuristic:', apiErr.message);
-        res = { subTasks: draftChecklist(title, form.description) };
-      }
-    }
+    const res = await apiService.draftSubtasks({
+      title,
+      description: form.description.trim(),
+      projectId: form.projectId || null
+    });
 
     const suggestions = (res && res.subTasks) ? res.subTasks : [];
     if (suggestions.length === 0) {
@@ -534,20 +463,13 @@ async function generateSmartCheckpoints() {
       return;
     }
 
-    let addedCount = 0;
     suggestions.forEach((st) => {
-      const trimmed = typeof st === 'string' ? st.trim() : (st && st.title ? st.title.trim() : '');
-      if (trimmed && !form.subTasks.some((existing) => existing.title.toLowerCase() === trimmed.toLowerCase())) {
-        form.subTasks.push({ title: trimmed, completed: false });
-        addedCount++;
+      if (!form.subTasks.some((existing) => existing.title === st)) {
+        form.subTasks.push({ title: st, completed: false });
       }
     });
 
-    if (addedCount > 0) {
-      emit('notify', `AI added ${addedCount} subtasks!`, 'success');
-    } else {
-      emit('notify', 'All suggested subtasks are already in checklist.', 'info');
-    }
+    emit('notify', `AI added ${suggestions.length} subtasks!`, 'success');
   } catch (err) {
     console.error('AI draft subtasks failed:', err);
     emit('notify', `AI Error: ${err.message}`, 'error');
@@ -563,8 +485,6 @@ function resetForm() {
   form.dueDate = getFormattedDate(3);
   form.subTasks = [];
   newSubTaskTitle.value = '';
-  formError.value = '';
-  subTaskError.value = '';
 }
 
 function handleClose() {
@@ -575,11 +495,10 @@ function handleClose() {
 async function handleSubmit() {
   if (!isFormValid.value || isSubmitting.value) return;
 
-  formError.value = '';
   isSubmitting.value = true;
   try {
     const payload = {
-      title: form.title.trim(),
+      title: form.title.trim().toUpperCase(),
       description: form.description.trim(),
       priority: form.priority,
       dueDate: form.dueDate,
@@ -594,9 +513,7 @@ async function handleSubmit() {
     emit('close');
   } catch (err) {
     console.error('Failed to create task:', err);
-    const msg = err.message || 'Unknown network error';
-    formError.value = msg;
-    emit('notify', `Failed to create task: ${msg}`, 'error');
+    emit('notify', `Failed to create task: ${err.message || 'Unknown network error'}`, 'error');
   } finally {
     isSubmitting.value = false;
   }
@@ -757,20 +674,6 @@ async function handleSubmit() {
 .text-hazard {
   color: var(--color-alert-red) !important;
   font-weight: bold;
-}
-
-.modal-form-error {
-  background: rgba(255, 59, 48, 0.12);
-  border: 1px solid var(--color-alert-red);
-  padding: 8px 12px;
-  margin-top: 14px;
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-}
-
-.subtask-validation-error {
-  margin-top: 6px;
 }
 
 .validation-error {

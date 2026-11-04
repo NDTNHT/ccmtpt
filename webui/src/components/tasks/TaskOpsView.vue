@@ -1,13 +1,5 @@
 <template>
   <div class="task-ops-view">
-    <div class="tactical-toolbar">
-      <label><input type="checkbox" :checked="state.localMode" @change="setLocalMode($event.target.checked)" />
-        Chế độ local + AI mock (lưu riêng trên trình duyệt)</label>
-      <span>{{ state.localMode ? 'LOCAL: không gửi dữ liệu tới máy chủ' : 'SERVER: SQLite + cache localStorage' }}</span>
-      <button v-if="!state.localMode" class="filter-chip" :disabled="state.loading" @click="fetchTasks">Tải lại từ máy chủ</button>
-      <p v-if="state.error" role="alert">{{ state.error }}</p>
-      <p v-if="state.storageError" role="alert">{{ state.storageError }}</p>
-    </div>
     <!-- Telemetry Metric Row -->
     <div class="telemetry-stat-row">
       <div class="stat-cell">
@@ -89,13 +81,6 @@
           </div>
         </div>
 
-        <div class="filter-group">
-          <label for="deadline-filter">DEADLINE:</label>
-          <select id="deadline-filter" class="tactical-select" :value="state.deadlineFilter" @change="setFilters({ deadline: $event.target.value })">
-            <option value="ALL">Tất cả</option><option value="OVERDUE">Quá hạn</option>
-            <option value="TODAY">Hôm nay</option><option value="WEEK">Trong 7 ngày</option><option value="NONE">Chưa đặt hạn</option>
-          </select>
-        </div>
         <!-- Task Creation Quick Bar / Drawer -->
         <div class="creation-banner">
           <div class="banner-header" @click="showCreateForm = !showCreateForm">
@@ -128,6 +113,7 @@
                 <option value="LOW">LOW</option>
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HIGH">HIGH</option>
+                <option value="CRITICAL">CRITICAL</option>
               </select>
             </div>
             <div class="form-row">
@@ -143,28 +129,34 @@
                 <span class="input-label">DUE DATE:</span>
                 <input v-model="newTask.dueDate" type="date" class="tactical-date-input" />
               </div>
-              <button type="submit" class="tactical-btn-submit" :disabled="!newTask.title.trim() || newTask.title.trim().length < 3 || newTask.title.trim().length > 100">
+              <button type="submit" class="tactical-btn-submit" :disabled="!newTask.title.trim()">
                 [CREATE TASK]
               </button>
             </div>
           </form>
         </div>
 
-        <div class="kanban-board" aria-label="Kanban board">
-          <section v-for="column in kanbanColumns" :key="column.status" class="kanban-column">
-            <h3>{{ column.title }} <span>[{{ column.tasks.length }}]</span></h3>
-            <TaskCard v-for="task in column.tasks" :key="task.id" :task="task"
-              :isSelected="state.selectedTask?.id === task.id"
-              @select="onSelectTask" @hover="onHoverTask" @inspect="openModalForTask"
-              @start="runTaskAction(startTask, $event)" @complete="runTaskAction(completeTask, $event)" @cancel="runTaskAction(cancelTask, $event)" />
-            <p v-if="!column.tasks.length" class="empty-hint">Không có công việc phù hợp.</p>
-          </section>
+        <!-- Task Grid Board -->
+        <div class="tasks-grid" v-if="filteredTasks.length > 0">
+          <TaskCard
+            v-for="task in filteredTasks"
+            :key="task.id"
+            :task="task"
+            :isSelected="state.selectedTask?.id === task.id"
+            @select="onSelectTask"
+            @hover="onHoverTask"
+            @start="startTask"
+            @complete="completeTask"
+            @cancel="cancelTask"
+            @inspect="openModalForTask"
+          />
         </div>
-        <section v-if="cancelledTasks.length" class="kanban-column">
-          <h3>Đã hủy [{{ cancelledTasks.length }}]</h3>
-          <TaskCard v-for="task in cancelledTasks" :key="task.id" :task="task"
-            @select="onSelectTask" @hover="onHoverTask" @inspect="openModalForTask" />
-        </section>
+
+        <!-- Empty State Directive Branching -->
+        <div v-else class="empty-state-box">
+          <div class="empty-ascii">[ NO MATCHING TASKS FOUND ]</div>
+          <p class="empty-hint">Try adjusting your search filters or create a new task.</p>
+        </div>
       </div>
 
       <!-- Real-Time Telemetry & Spec Inspector (Updated on @mouseover & @click) -->
@@ -241,11 +233,11 @@
     <TaskDetailModal
       :isOpen="isModalOpen"
       :task="state.selectedTask"
-      @close="router.push('/tasks')"
-      @toggle-subtask="(id, subId) => runTaskAction(() => toggleSubTask(id, subId))"
-      @start-task="runTaskAction(startTask, $event)"
-      @complete-task="runTaskAction(completeTask, $event)"
-      @cancel-task="runTaskAction(cancelTask, $event)"
+      @close="isModalOpen = false"
+      @toggle-subtask="toggleSubTask"
+      @start-task="startTask"
+      @complete-task="completeTask"
+      @cancel-task="cancelTask"
       @notify="$emit('notify', $event)"
     />
 
@@ -260,23 +252,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useTaskStore } from '../../store/useTaskStore.js';
-import { useRoute, useRouter } from 'vue-router';
 import TaskCard from './TaskCard.vue';
 import TaskDetailModal from './TaskDetailModal.vue';
 import CreateTaskModal from './CreateTaskModal.vue';
 
 const emit = defineEmits(['notify']);
-const route = useRoute();
-const router = useRouter();
 
 const {
   state,
   filteredTasks,
-  kanbanColumns,
-  setLocalMode,
-  fetchTasks,
   taskStats,
   createTask,
   startTask,
@@ -288,23 +274,12 @@ const {
   setFilters
 } = useTaskStore();
 
-const cancelledTasks = computed(() => filteredTasks.value.filter(t => t.status === 'CANCELLED'));
-async function runTaskAction(action, id) {
-  try { await action(id); } catch (err) { emit('notify', err.message, 'error'); }
-}
-
-const statusOptions = ['ALL', 'TODO', 'IN_PROGRESS', 'DONE', 'CANCELLED'];
-const priorityOptions = ['ALL', 'LOW', 'MEDIUM', 'HIGH'];
+const statusOptions = ['ALL', 'TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const priorityOptions = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 const showCreateForm = ref(false);
 const isModalOpen = ref(false);
 const isCreateModalOpen = ref(false);
-watch(() => [route.params.taskId, state.tasks, state.loading], () => {
-  const id = route.params.taskId;
-  const task = state.tasks.find(t => t.id === id);
-  if (task) { selectTask(task); isModalOpen.value = true; }
-  else isModalOpen.value = false;
-}, { immediate: true });
 
 const newTask = ref({
   title: '',
@@ -332,7 +307,7 @@ function onHoverTask(task) {
 
 function openModalForTask(task) {
   selectTask(task);
-  router.push({ name: 'task-detail', params: { taskId: task.id } });
+  isModalOpen.value = true;
 }
 
 function handleTaskCreated(task) {
@@ -340,14 +315,10 @@ function handleTaskCreated(task) {
 }
 
 async function handleCreateTask() {
-  const title = newTask.value.title.trim();
-  if (title.length < 3 || title.length > 100) {
-    emit('notify', 'Tiêu đề task phải từ 3 đến 100 ký tự.', 'error');
-    return;
-  }
+  if (!newTask.value.title.trim()) return;
   try {
-    const created = await createTask({ ...newTask.value, title });
-    emit('notify', `Task "${created.title}" created successfully.`, 'success');
+    const created = await createTask({ ...newTask.value });
+    emit('notify', `Task "${newTask.value.title}" created successfully.`, 'success');
     selectTask(created);
     newTask.value = {
       title: '',
@@ -364,13 +335,6 @@ async function handleCreateTask() {
 </script>
 
 <style scoped>
-.kanban-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.kanban-column { min-width: 0; padding: 12px; background: var(--color-surface); border: 1px solid var(--color-border); display: flex; flex-direction: column; gap: 12px; }
-.kanban-column h3 { font-size: .9rem; margin: 0; color: var(--color-neon-amber); }
-.board-column { min-width: 0; }
-@media (max-width: 1200px) { .workspace-grid { grid-template-columns: minmax(0, 1fr); } .telemetry-inspector { position: static; } }
-@media (max-width: 760px) { .kanban-board { grid-template-columns: 1fr; } }
-
 .task-ops-view {
   display: flex;
   flex-direction: column;
@@ -935,12 +899,5 @@ async function handleCreateTask() {
   color: var(--color-text-muted);
   font-size: 0.72rem;
   line-height: 1.5;
-}
-@media (max-width: 1200px) { .workspace-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) {
-  .telemetry-stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .stat-cell { min-width: 0; padding: 12px; }
-  .banner-header, .header-right, .form-row { flex-wrap: wrap; gap: 8px; }
-  .title-input { min-width: 0; }
 }
 </style>

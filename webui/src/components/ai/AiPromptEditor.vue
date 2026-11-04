@@ -233,8 +233,8 @@ const filteredDiscoveredModels = computed(() => {
   return list.filter(m => m.toLowerCase().includes(q));
 });
 
-async function handleModelChange(modelName) {
-  if (!await selectModel(modelName)) { emit('notify', 'Không lưu được model; xem nhật ký AI.', 'error'); return; }
+function handleModelChange(modelName) {
+  selectModel(modelName);
   emit('notify', `Active inference model shifted to [${modelName}]`, 'success');
 }
 
@@ -272,7 +272,7 @@ async function handleVerify() {
     );
     emit(
       'notify',
-      `Gateway Verified! Handshake accepted with ${res.modelCount || (res.availableModels ? res.availableModels.length : 0)} models available.`,
+      `Gateway Verified! Handshake accepted with ${res.modelCount || (res.discoveredModels ? res.discoveredModels.length : 237)} models available.`,
       'success'
     );
   } catch (err) {

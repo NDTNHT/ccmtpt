@@ -12,9 +12,19 @@
 
     <!-- Main Operational Workspace -->
     <main class="tactical-main-content">
-      <RouterView v-slot="{ Component }">
-        <component :is="Component" @notify="handleNotify" />
-      </RouterView>
+      <transition name="view-fade" mode="out-in">
+        <!-- Module 01: Tasks & Checklists -->
+        <TaskOpsView
+          v-if="activeTab === 'tasks'"
+          @notify="handleNotify"
+        />
+
+        <!-- Module 02: AI Copilot & Neural Gateway -->
+        <AiCopilotView
+          v-else-if="activeTab === 'ai'"
+          @notify="handleNotify"
+        />
+      </transition>
     </main>
 
     <!-- Telemetry Notification Stack -->
@@ -23,31 +33,28 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import TacticalHeader from './components/layout/TacticalHeader.vue';
 import TacticalNav from './components/layout/TacticalNav.vue';
 import TelemetryNotifier from './components/layout/TelemetryNotifier.vue';
-import { RouterView, useRoute, useRouter } from 'vue-router';
+import TaskOpsView from './components/tasks/TaskOpsView.vue';
+import AiCopilotView from './components/ai/AiCopilotView.vue';
 import { useTaskStore } from './store/useTaskStore.js';
 import { useAiStore } from './store/useAiStore.js';
 
-const route = useRoute();
-const router = useRouter();
-const activeTab = computed({
-  get: () => route.name === 'ai' ? 'ai' : 'tasks',
-  set: tab => router.push(tab === 'ai' ? '/ai' : '/tasks')
-});
+const activeTab = ref('tasks');
 const notifierRef = ref(null);
 
-const { fetchTasks, state: taskState } = useTaskStore();
+const { fetchTasks } = useTaskStore();
 const { fetchConfig, fetchProviders } = useAiStore();
 
 onMounted(async () => {
   try {
-    await fetchTasks();
-    if (!taskState.localMode) {
-      await Promise.allSettled([fetchConfig(), fetchProviders()]);
-    }
+    await Promise.allSettled([
+      fetchTasks(),
+      fetchConfig(),
+      fetchProviders()
+    ]);
   } catch (err) {
     console.warn('Initial telemetry synchronization note:', err);
   }
@@ -94,5 +101,4 @@ function handleNotify(message, level = 'info') {
   opacity: 0;
   transform: translateY(-6px);
 }
-@media (max-width: 640px) { .tactical-main-content { padding: 12px; } }
 </style>

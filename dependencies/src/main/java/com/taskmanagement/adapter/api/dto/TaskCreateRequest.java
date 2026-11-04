@@ -22,12 +22,6 @@ public record TaskCreateRequest(
 
     Priority priority,
 
-    UUID projectId,
-
-    @Size(max = 100)
-    java.util.List<@NotBlank @Size(max = 200) String> subTasks
+    UUID projectId
 ) {
-    public TaskCreateRequest(String title, String description, Instant dueDate, Priority priority, UUID projectId) {
-        this(title, description, dueDate, priority, projectId, java.util.List.of());
-    }
 }

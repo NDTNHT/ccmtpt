@@ -1,6 +1,6 @@
 <template>
   <div class="tactical-modal-backdrop" v-if="isOpen" @click.self="$emit('close')">
-    <div class="tactical-modal-window" role="dialog" aria-modal="true" :aria-label="task?.title">
+    <div class="tactical-modal-window">
       <!-- Modal Header -->
       <div class="modal-header">
         <div class="header-tag">
@@ -77,7 +77,7 @@
           </div>
           <p class="ai-banner-text">{{ aiFeedback.text }}</p>
           <div class="ai-banner-actions" v-if="aiFeedback.applyPayload">
-            <button class="tactical-btn-sm text-green" :disabled="aiLoading" @click="applyAiRecommendation">
+            <button class="tactical-btn-sm text-green" @click="applyAiRecommendation">
               [APPLY TO TASK]
             </button>
           </div>
@@ -99,17 +99,13 @@
               :key="st.id"
               class="subtask-row"
               :class="{ 'row-completed': st.completed }"
-              role="checkbox" :aria-checked="st.completed" :aria-disabled="['DONE', 'CANCELLED'].includes(task.status)"
-              :tabindex="['DONE', 'CANCELLED'].includes(task.status) ? -1 : 0"
-              @keydown.space.prevent="toggleChecklist(st.id)"
-              @keydown.enter.prevent="toggleChecklist(st.id)"
-              @click="toggleChecklist(st.id)"
+              @click="$emit('toggle-subtask', task.id, st.id)"
             >
               <span class="checkbox-indicator">
                 {{ st.completed ? '[X]' : '[ ]' }}
               </span>
               <span class="subtask-text">{{ st.title }}</span>
-              <span class="subtask-state">{{ st.completed ? 'DONE' : 'PENDING' }}</span>
+              <span class="subtask-state">{{ st.completed ? 'COMPLETED' : 'PENDING' }}</span>
             </div>
           </div>
 
@@ -131,7 +127,7 @@
       <!-- Modal Footer -->
       <div class="modal-footer">
         <div class="footer-status">
-          CHECKLIST &amp; AI RECOMMENDATIONS
+          TASK SYNCHRONIZED // SPRING BOOT REST API
         </div>
         <div class="footer-actions">
           <button 
@@ -149,7 +145,7 @@
             [MARK COMPLETED]
           </button>
           <button 
-            v-if="task?.status !== 'DONE' && task?.status !== 'CANCELLED'"
+            v-if="task?.status !== 'COMPLETED' && task?.status !== 'CANCELLED'" 
             class="tactical-btn-sm text-dim"
             @click="$emit('cancel-task', task.id)"
           >
@@ -162,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useAiStore } from '../../store/useAiStore.js';
 import { useTaskStore } from '../../store/useTaskStore.js';
 
@@ -193,18 +189,11 @@ const {
   generateSummary 
 } = useAiStore();
 
-const { addSubTasks, applyRecommendations } = useTaskStore();
+const { addSubTasks, updateTaskInState } = useTaskStore();
 
-function closeOnEscape(event) { if (event.key === 'Escape' && props.isOpen) emit('close'); }
-onMounted(() => window.addEventListener('keydown', closeOnEscape));
-onUnmounted(() => window.removeEventListener('keydown', closeOnEscape));
-function toggleChecklist(id) {
-  if (props.task && !['DONE', 'CANCELLED'].includes(props.task.status)) emit('toggle-subtask', props.task.id, id);
-}
 const aiLoading = ref(false);
 const aiFeedback = ref(null);
 const newSubTaskTitle = ref('');
-watch(() => [props.task?.id, props.isOpen], () => { aiFeedback.value = null; newSubTaskTitle.value = ''; });
 
 const totalSubTasks = computed(() => props.task?.subTasks?.length || 0);
 const completedCount = computed(() => {
@@ -215,26 +204,23 @@ const statusColorClass = computed(() => {
   if (!props.task) return '';
   switch (props.task.status) {
     case 'IN_PROGRESS': return 'text-amber';
-    case 'DONE': return 'text-green';
+    case 'COMPLETED': return 'text-green';
     case 'CANCELLED': return 'text-dim';
     default: return 'text-main';
   }
 });
 
-async function onAddSubTask() {
+function onAddSubTask() {
   if (!newSubTaskTitle.value.trim() || !props.task) return;
-  try { await addSubTasks(props.task.id, [newSubTaskTitle.value.trim()]); }
-  catch (err) { emit('notify', err.message, 'error'); return; }
+  addSubTasks(props.task.id, [newSubTaskTitle.value.trim()]);
   newSubTaskTitle.value = '';
 }
 
 async function onAiDecompose() {
   if (!props.task) return;
-  const targetId = props.task.id;
   aiLoading.value = true;
   try {
     const res = await decomposeTask(props.task.id, props.task.title);
-    if (props.task?.id !== targetId || !props.isOpen) return;
     aiFeedback.value = {
       timestamp: new Date().toLocaleTimeString(),
       text: `Generated ${res.subTasks.length} checklist items. ${res.rationale || ''}`,
@@ -253,14 +239,12 @@ async function onAiDecompose() {
 
 async function onAiEstimateDeadline() {
   if (!props.task) return;
-  const targetId = props.task.id;
   aiLoading.value = true;
   try {
     const res = await estimateDeadline(props.task.id);
-    if (props.task?.id !== targetId || !props.isOpen) return;
     aiFeedback.value = {
       timestamp: new Date().toLocaleTimeString(),
-      text: `Recommended Deadline: ${res.recommendedDeadline} (Est. ${res.estimatedHours}h, Confidence: ${res.confidence}). ${res.explanation || ''}`,
+      text: `Recommended Deadline: ${res.recommendedDeadline} (Est. ${res.estimatedHours}h, Confidence: ${Math.round(res.confidenceScore * 100)}%). ${res.reasoning || ''}`,
       applyPayload: {
         type: 'DEADLINE',
         deadline: res.recommendedDeadline
@@ -276,20 +260,18 @@ async function onAiEstimateDeadline() {
 
 async function onAiAnalyzePriority() {
   if (!props.task) return;
-  const targetId = props.task.id;
   aiLoading.value = true;
   try {
     const res = await analyzePriority(props.task.id);
-    if (props.task?.id !== targetId || !props.isOpen) return;
     aiFeedback.value = {
       timestamp: new Date().toLocaleTimeString(),
-      text: `Recommended Priority: [${res.effectivePriority}]. ${res.reasoning || ''}`,
+      text: `Recommended Priority: [${res.recommendedPriority}] (Urgency: ${res.urgencyScore}/100, Impact: ${res.impactScore}/100). ${res.reasoning || ''}`,
       applyPayload: {
         type: 'PRIORITY',
-        priority: res.effectivePriority
+        priority: res.recommendedPriority
       }
     };
-    emit('notify', `AI Recommended priority: ${res.effectivePriority}`, 'success');
+    emit('notify', `AI Recommended priority: ${res.recommendedPriority}`, 'success');
   } catch (err) {
     emit('notify', `AI priority analysis error: ${err.message}`, 'error');
   } finally {
@@ -299,11 +281,9 @@ async function onAiAnalyzePriority() {
 
 async function onAiGenerateSummary() {
   if (!props.task) return;
-  const targetId = props.task.id;
   aiLoading.value = true;
   try {
     const res = await generateSummary(props.task.id);
-    if (props.task?.id !== targetId || !props.isOpen) return;
     aiFeedback.value = {
       timestamp: new Date().toLocaleTimeString(),
       text: `Summary: ${res.summary}`,
@@ -320,29 +300,24 @@ async function onAiGenerateSummary() {
   }
 }
 
-async function applyAiRecommendation() {
-  if (aiLoading.value) return;
-  aiLoading.value = true;
-  try {
+function applyAiRecommendation() {
   if (!aiFeedback.value?.applyPayload || !props.task) return;
   const { type, items, deadline, priority, summary } = aiFeedback.value.applyPayload;
 
   if (type === 'DECOMPOSE' && items) {
-    await addSubTasks(props.task.id, items);
+    addSubTasks(props.task.id, items);
     emit('notify', 'Subtasks added to task.', 'success');
   } else if (type === 'DEADLINE' && deadline) {
-    await applyRecommendations(props.task.id, { dueDate: deadline });
+    updateTaskInState(props.task.id, { dueDate: deadline });
     emit('notify', `Due date updated to ${deadline}.`, 'success');
   } else if (type === 'PRIORITY' && priority) {
-    await applyRecommendations(props.task.id, { priority });
+    updateTaskInState(props.task.id, { priority });
     emit('notify', `Priority updated to [${priority}].`, 'success');
   } else if (type === 'SUMMARY' && summary) {
-    await applyRecommendations(props.task.id, { aiSummary: summary });
+    updateTaskInState(props.task.id, { aiSummary: summary });
     emit('notify', 'AI summary added to task.', 'success');
   }
   aiFeedback.value = null;
-  } catch (err) { emit('notify', err.message, 'error'); }
-  finally { aiLoading.value = false; }
 }
 </script>
 

@@ -1,7 +1,5 @@
 # Task Management System
 
-> Báo cáo hoàn thiện Vue 3, Pinia, Kanban, localStorage, AI và CI/CD: [docs/README.md](docs/README.md).
-
 Dịch vụ quản lý công việc viết bằng Java 17, cung cấp REST API và ứng dụng console trên cùng
 một lõi nghiệp vụ. Dữ liệu được lưu trong SQLite; có thể thay bằng JSON file hoặc bộ nhớ tạm
 khi cần.
@@ -244,6 +242,6 @@ Bộ test bao phủ: nghiệp vụ công việc và dự án, tính độ ưu ti
 trùng tiêu đề, persistence SQLite/JSON, presenter, xác thực API, xử lý input console và các
 trường hợp lỗi của API.
 
-## 11. Phiên bản.
+## 11. Phiên bản
 
 `1.0.0`

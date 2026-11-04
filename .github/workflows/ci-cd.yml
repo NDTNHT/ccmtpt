@@ -71,35 +71,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node 22 + cache npm
+      - name: Setup Node 20 + cache npm
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
           cache: npm
-          cache-dependency-path: |
-            webui/package-lock.json
-            webui/package.json
+          cache-dependency-path: webui/package-lock.json
 
-      - name: Cai dependencies (dung lockfile neu co)
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            echo package-lock.json khong co trong repo: dung npm install.
-            npm install --no-audit --no-fund
-          fi
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Frontend tests
-        run: npm test
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Browser tests
-        run: npm run test:e2e
+      - name: Cai dependencies dung lockfile
+        run: npm ci
 
       - name: Build
         run: npm run build

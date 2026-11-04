@@ -34,10 +34,6 @@ public class SubTask extends Entity<UUID> {
         this.completed = true;
     }
 
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
     public void rename(String newTitle) {
         this.title = validateTitle(newTitle);
     }

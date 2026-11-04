@@ -3,7 +3,7 @@
     class="tactical-task-card"
     :class="{
       'card-selected': isSelected,
-      'card-completed': task.status === 'DONE',
+      'card-completed': task.status === 'COMPLETED',
       'card-cancelled': task.status === 'CANCELLED',
       'card-critical': task.priority === 'CRITICAL'
     }"
@@ -16,7 +16,7 @@
         <!-- Status Directive Branching -->
         <span v-if="task.status === 'TODO'" class="ascii-badge">[TODO]</span>
         <span v-else-if="task.status === 'IN_PROGRESS'" class="ascii-badge badge-warning">[ACTIVE]</span>
-        <span v-else-if="task.status === 'DONE'" class="ascii-badge badge-success">[COMPLETED]</span>
+        <span v-else-if="task.status === 'COMPLETED'" class="ascii-badge badge-success">[COMPLETED]</span>
         <span v-else class="ascii-badge badge-dim">[CANCELLED]</span>
 
         <!-- Priority Directive Branching -->
@@ -87,7 +87,7 @@
           [COMPLETE]
         </button>
         <button 
-          v-if="task.status !== 'DONE' && task.status !== 'CANCELLED'"
+          v-if="task.status !== 'COMPLETED' && task.status !== 'CANCELLED'" 
           class="mini-btn text-dim"
           title="Cancel Task"
           @click.stop="$emit('cancel', task.id)"
@@ -130,7 +130,7 @@ const completionPercent = computed(() => {
 });
 
 const isOverdue = computed(() => {
-  if (!props.task.dueDate || props.task.status === 'DONE') return false;
+  if (!props.task.dueDate || props.task.status === 'COMPLETED') return false;
   return new Date(props.task.dueDate).getTime() < Date.now();
 });
 </script>

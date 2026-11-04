@@ -23,10 +23,20 @@
     </div>
 
     <div class="nav-system-status">
+      <div class="db-actions">
+        <button class="db-action-btn" title="Export database to JSON file" @click="handleExport">
+          [EXPORT DB ⤓]
+        </button>
+        <label class="db-action-btn file-label" title="Import database from JSON file">
+          [IMPORT DB ⤒]
+          <input type="file" accept=".json" class="hidden-file-input" @change="handleImportFile" />
+        </label>
+      </div>
+
       <div class="status-indicator">
-        <span class="status-led" :class="backendOnline ? 'led-online' : 'led-offline'"></span>
+        <span class="status-led led-online"></span>
         <span class="status-code">
-          {{ backendOnline ? 'SYSTEM READY // BACKEND CONNECTED' : 'SYSTEM OFFLINE // CONNECTING' }}
+          LOCAL-FIRST CLIENT // PERSISTENCE: LOCALSTORAGE
         </span>
       </div>
     </div>
@@ -43,9 +53,30 @@ defineProps({
   }
 });
 
-defineEmits(['update:currentTab']);
+const emit = defineEmits(['update:currentTab', 'notify']);
 
-const { backendOnline } = useTaskStore();
+const { exportDatabase, importDatabase } = useTaskStore();
+
+function handleExport() {
+  exportDatabase();
+  emit('notify', 'Database exported as JSON backup.', 'success');
+}
+
+function handleImportFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      importDatabase(e.target.result);
+      emit('notify', 'Database backup successfully imported!', 'success');
+    } catch (err) {
+      emit('notify', `Import failed: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
 </script>
 
 <style scoped>
@@ -103,9 +134,44 @@ const { backendOnline } = useTaskStore();
 }
 
 .nav-system-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   font-family: var(--font-mono-code);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
+}
+
+.db-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.db-action-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  font-family: var(--font-mono-code);
+  font-size: 0.68rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+
+.db-action-btn:hover {
+  border-color: var(--color-neon-amber);
+  color: var(--color-neon-amber);
+}
+
+.file-label {
+  position: relative;
+  cursor: pointer;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .status-indicator {
@@ -126,11 +192,6 @@ const { backendOnline } = useTaskStore();
 .led-online {
   background: #00E676;
   box-shadow: 0 0 6px #00E676;
-}
-
-.led-offline {
-  background: #FF3D00;
-  box-shadow: 0 0 6px #FF3D00;
 }
 
 .status-code {

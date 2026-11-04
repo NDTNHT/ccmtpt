@@ -1,54 +1,11 @@
-import { reactive, computed, ref } from 'vue';
+import { reactive, computed, ref, watch } from 'vue';
+import { apiService } from '../services/apiService.js';
+import { storageService } from '../services/storageService.js';
 
 const backendOnline = ref(true);
-import { apiService } from '../services/apiService.js';
 
 const state = reactive({
-  tasks: [
-    {
-      id: 'task-sys-001',
-      title: 'CALIBRATE NEURAL LINK PROTOCOLS',
-      description: 'Run automated parity and health checks against Anthropic/OpenAI compatible backend gateways.',
-      status: 'IN_PROGRESS',
-      priority: 'HIGH',
-      dueDate: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-      projectId: 'proj-omega-01',
-      subTasks: [
-        { id: 'st-01', title: 'Verify TLS Handshake on v1/models', completed: true },
-        { id: 'st-02', title: 'Parse Token Consumption Stream', completed: true },
-        { id: 'st-03', title: 'Benchmark Latency Ceiling (<350ms)', completed: false }
-      ],
-      aiSummary: 'Parity check underway. 2 of 3 verification benchmarks satisfied.'
-    },
-    {
-      id: 'task-sys-002',
-      title: 'SYNCHRONIZE TACTICAL INVENTORY MATRIX',
-      description: 'Audit server cluster cooling modules and industrial power relays.',
-      status: 'TODO',
-      priority: 'CRITICAL',
-      dueDate: new Date(Date.now() + 86400000 * 4).toISOString().slice(0, 10),
-      projectId: 'proj-omega-01',
-      subTasks: [
-        { id: 'st-04', title: 'Inspect Cryogenic Heat Sinks', completed: false },
-        { id: 'st-05', title: 'Measure Bus Voltage Under Load', completed: false }
-      ],
-      aiSummary: 'High priority alert: potential heat threshold breach detected.'
-    },
-    {
-      id: 'task-sys-003',
-      title: 'DEPLOY REFACTORED CLEAN ARCH CONTROLLER',
-      description: 'Verify Spring Boot 3 endpoint mappings with JUnit 5 and verify complete output.',
-      status: 'COMPLETED',
-      priority: 'MEDIUM',
-      dueDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-      projectId: 'proj-omega-01',
-      subTasks: [
-        { id: 'st-06', title: 'Execute 145 Domain/Adapter Tests', completed: true },
-        { id: 'st-07', title: 'Purge Temporary Sandbox Keys', completed: true }
-      ],
-      aiSummary: 'All unit test suites executed with 100% pass rate.'
-    }
-  ],
+  tasks: storageService.getTasks(),
   selectedTask: null,
   hoveredTask: null,
   statusFilter: 'ALL',
@@ -57,6 +14,15 @@ const state = reactive({
   loading: false,
   error: null
 });
+
+// Auto-persist state.tasks changes to localStorage
+watch(
+  () => state.tasks,
+  (newTasks) => {
+    storageService.saveTasks(newTasks);
+  },
+  { deep: true }
+);
 
 export function useTaskStore() {
   const filteredTasks = computed(() => {
@@ -99,9 +65,8 @@ export function useTaskStore() {
         }));
       }
     } catch (err) {
-      console.warn('Backend tasks offline, maintaining local cache:', err.message);
-      backendOnline.value = false;
-      state.error = `OFFLINE MODE: ${err.message}`;
+      console.warn('Local storage fetch error:', err.message);
+      state.error = `LOCAL_STORAGE_ERR: ${err.message}`;
     } finally {
       state.loading = false;
     }
@@ -110,71 +75,10 @@ export function useTaskStore() {
   async function createTask(payload) {
     state.loading = true;
     try {
-      const sanitizedTitle = (payload.title || '').trim();
-      const sanitizedDescription = (payload.description || '').trim();
-      
-      let formattedDueDate = null;
-      if (payload.dueDate) {
-        try {
-          const d = new Date(payload.dueDate);
-          if (!isNaN(d.getTime())) {
-            formattedDueDate = d.toISOString();
-          }
-        } catch (e) {
-          console.warn('Invalid dueDate format:', payload.dueDate);
-        }
-      }
-
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      const validProjectId = (payload.projectId && uuidRegex.test(payload.projectId)) 
-        ? payload.projectId 
-        : null;
-
-      const apiPayload = {
-        title: sanitizedTitle,
-        description: sanitizedDescription,
-        priority: payload.priority || 'MEDIUM',
-        dueDate: formattedDueDate,
-        projectId: validProjectId
-      };
-
-      let createdTask;
-      try {
-        createdTask = await apiService.createTask(apiPayload);
-      } catch (err) {
-        console.warn('Simulating task creation locally:', err.message);
-        createdTask = {
-          taskId: `task-local-${Date.now().toString().slice(-4)}`,
-          title: sanitizedTitle.toUpperCase(),
-          description: sanitizedDescription || 'Task created in offline mode',
-          status: 'TODO',
-          priority: payload.priority || 'MEDIUM',
-          dueDate: formattedDueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-          projectId: validProjectId || null,
-          subTasks: []
-        };
-      }
-
-      const normalized = {
-        ...createdTask,
-        id: (createdTask.taskId || createdTask.id).toString(),
-        subTasks: (payload.subTasks && payload.subTasks.length > 0)
-          ? payload.subTasks.map((st, i) => {
-              if (typeof st === 'string') {
-                return { id: `st-${Date.now()}-${i}`, title: st, completed: false };
-              }
-              return {
-                id: (st.subTaskId || st.id || `st-${Date.now()}-${i}`).toString(),
-                title: st.title || 'Subtask',
-                completed: !!st.completed
-              };
-            })
-          : (createdTask.subTasks || [])
-      };
-
-      state.tasks.unshift(normalized);
-      state.selectedTask = normalized;
-      return normalized;
+      const createdTask = await apiService.createTask(payload);
+      state.tasks.unshift(createdTask);
+      state.selectedTask = createdTask;
+      return createdTask;
     } finally {
       state.loading = false;
     }
@@ -226,6 +130,7 @@ export function useTaskStore() {
       if (state.hoveredTask && state.hoveredTask.id === taskId) {
         state.hoveredTask = state.tasks[idx];
       }
+      storageService.saveTasks(state.tasks);
     }
   }
 
@@ -246,6 +151,7 @@ export function useTaskStore() {
       if (state.selectedTask && state.selectedTask.id === taskId) {
         state.selectedTask = { ...task };
       }
+      storageService.saveTasks(state.tasks);
     }
   }
 
@@ -262,12 +168,25 @@ export function useTaskStore() {
     if (state.selectedTask && state.selectedTask.id === taskId) {
       state.selectedTask = { ...task };
     }
+    storageService.saveTasks(state.tasks);
   }
 
   function setFilters({ status, priority, search }) {
     if (status !== undefined) state.statusFilter = status;
     if (priority !== undefined) state.priorityFilter = priority;
     if (search !== undefined) state.searchQuery = search;
+  }
+
+  function exportDatabase() {
+    storageService.exportDatabase();
+  }
+
+  function importDatabase(jsonString) {
+    storageService.importDatabase(jsonString);
+    state.tasks = storageService.getTasks();
+    if (state.selectedTask) {
+      state.selectedTask = state.tasks[0] || null;
+    }
   }
 
   return {
@@ -286,6 +205,8 @@ export function useTaskStore() {
     toggleSubTask,
     addSubTasks,
     updateTaskInState,
-    setFilters
+    setFilters,
+    exportDatabase,
+    importDatabase
   };
 }

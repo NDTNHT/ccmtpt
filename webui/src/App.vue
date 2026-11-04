@@ -8,7 +8,7 @@
     <TacticalHeader />
 
     <!-- Module Navigation -->
-    <TacticalNav v-model:currentTab="activeTab" />
+    <TacticalNav v-model:currentTab="activeTab" @notify="handleNotify" />
 
     <!-- Main Operational Workspace -->
     <main class="tactical-main-content">
@@ -100,5 +100,30 @@ function handleNotify(message, level = 'info') {
 .view-fade-leave-to {
   opacity: 0;
   transform: translateY(-6px);
+}
+
+/* Atmospheric CRT scanline and vignette effects */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+.crt-scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.7;
 }
 </style>

@@ -55,7 +55,7 @@
                   v-model="verifyApiKey"
                   :type="showApiKey ? 'text' : 'password'"
                   class="tactical-input key-input"
-                  placeholder="sk_..."
+                  :placeholder="activeProvider.protocol === 'GEMINI' ? 'AIzaSy... (Google AI Studio Key)' : (activeProvider.id === 'anthropic' ? 'sk-ant-...' : 'sk-...')"
                 />
                 <button
                   type="button"
@@ -185,7 +185,7 @@ const {
 const localPrompt = ref(state.customSystemPrompt);
 const showApiKey = ref(false);
 const verifyBaseUrl = ref(state.config.baseUrl);
-const verifyApiKey = ref('');
+const verifyApiKey = ref(state.config.apiKey || '');
 
 const availableModels = computed(() => {
   const list = [];
@@ -248,7 +248,8 @@ watch(
 watch(
   () => state.activeProviderId,
   () => {
-    verifyBaseUrl.value = activeProvider.value.baseUrl;
+    verifyBaseUrl.value = activeProvider.value.baseUrl;
+    verifyApiKey.value = state.config.apiKey || '';
   }
 );
 

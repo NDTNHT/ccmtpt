@@ -6,12 +6,14 @@ services:
     region: singapore
     dockerfilePath: ./Dockerfile
     envVars:
+      - key: PORT
+        value: 8080
       - key: SERVER_PORT
         value: 8080
       - key: TASKMANAGEMENT_DB
         value: /app/data/tasks.db
       - key: JAVA_OPTS
-        value: "-Xmx512m -Xms256m"
+        value: "-Xmx384m -Xms128m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
     disk:
       name: task-data
       mountPath: /app/data

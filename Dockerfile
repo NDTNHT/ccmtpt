@@ -19,13 +19,14 @@ COPY --from=build /workspace/target/task-management-system-1.0.0.jar app.jar
 
 USER appuser
 ENV SERVER_PORT=8080 \
+    PORT=8080 \
     TASKMANAGEMENT_DB=/app/data/tasks.db \
-    JAVA_OPTS=""
+    JAVA_OPTS="-Xmx384m -Xms128m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
 
 EXPOSE 8080
 VOLUME ["/app/data"]
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD curl -fsS "http://127.0.0.1:${SERVER_PORT}/actuator/health" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -fsS "http://127.0.0.1:${PORT:-8080}/actuator/health" || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]

@@ -1,4 +1,6 @@
-import { reactive, computed } from 'vue';
+import { reactive, computed, ref } from 'vue';
+
+const backendOnline = ref(true);
 import { apiService } from '../services/apiService.js';
 
 const state = reactive({
@@ -85,6 +87,7 @@ export function useTaskStore() {
     state.error = null;
     try {
       const data = await apiService.getTasks();
+      backendOnline.value = true;
       if (Array.isArray(data) && data.length > 0) {
         state.tasks = data.map((t) => ({
           ...t,
@@ -97,6 +100,7 @@ export function useTaskStore() {
       }
     } catch (err) {
       console.warn('Backend tasks offline, maintaining local cache:', err.message);
+      backendOnline.value = false;
       state.error = `OFFLINE MODE: ${err.message}`;
     } finally {
       state.loading = false;
@@ -270,6 +274,7 @@ export function useTaskStore() {
     state,
     filteredTasks,
     taskStats,
+    backendOnline,
     fetchTasks,
     createTask,
     startTask,

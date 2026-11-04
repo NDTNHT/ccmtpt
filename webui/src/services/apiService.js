@@ -2,10 +2,33 @@
  * API Service for connecting to Task Management Spring Boot backend.
  */
 
-const BASE_URL = '/api';
+export function getApiBaseUrl() {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('task_backend_api_url');
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/+$/, '');
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return '/api';
+}
+
+export function setApiBaseUrl(newUrl) {
+  if (typeof window !== 'undefined') {
+    if (newUrl && newUrl.trim() && newUrl.trim() !== '/api') {
+      localStorage.setItem('task_backend_api_url', newUrl.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('task_backend_api_url');
+    }
+  }
+}
 
 async function request(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${endpoint}`;
   const config = {
     headers: {
       'Content-Type': 'application/json',
@@ -41,6 +64,8 @@ async function request(endpoint, options = {}) {
 }
 
 export const apiService = {
+  getBaseUrl: getApiBaseUrl,
+  setBaseUrl: setApiBaseUrl,
   // Tasks Endpoints
   getTasks: () => request('/tasks'),
   getTaskById: (id) => request(`/tasks/${id}`),

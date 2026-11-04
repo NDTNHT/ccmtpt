@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: task-management-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SERVER_PORT
+        value: 8080
+      - key: TASKMANAGEMENT_DB
+        value: /app/data/tasks.db
+      - key: JAVA_OPTS
+        value: "-Xmx512m -Xms256m"
+    disk:
+      name: task-data
+      mountPath: /app/data
+      sizeGB: 1

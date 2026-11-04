@@ -24,7 +24,7 @@ import java.security.MessageDigest;
  * probes keep working.</p>
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+@Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class ApiKeyFilter extends OncePerRequestFilter {
     public static final String API_KEY_HEADER = "X-API-Key";
 
@@ -39,6 +39,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return configuredKey.length == 0
+            || "OPTIONS".equalsIgnoreCase(request.getMethod())
             || request.getRequestURI().startsWith("/actuator/health");
     }
 

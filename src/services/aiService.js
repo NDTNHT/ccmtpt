@@ -57,7 +57,7 @@ function extractJson(rawText) {
 
   try {
     return JSON.parse(cleaned);
-  } catch (e1) {
+  } catch {
     const firstBrace = cleaned.indexOf('{');
     const firstBracket = cleaned.indexOf('[');
     let startIdx = -1;
@@ -82,6 +82,28 @@ function extractJson(rawText) {
 
     throw new Error(`Failed to parse AI output as structured JSON: ${rawText.slice(0, 100)}...`);
   }
+}
+
+async function postJson(url, headers, body, providerName) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}));
+    const msg = errJson.error?.message || errJson.message || `HTTP ${res.status}: ${res.statusText}`;
+    throw new Error(`${providerName} Error: ${msg}`);
+  }
+
+  return res.json();
+}
+
+function extractSubtasks(res) {
+  return Array.isArray(res?.subtasks)
+    ? res.subtasks
+    : (Array.isArray(res?.subTasks) ? res.subTasks : []);
 }
 
 export const aiService = {
@@ -129,7 +151,7 @@ export const aiService = {
         apiKey: key || '',
         timeoutSeconds: parsed.timeoutSeconds || 15
       };
-    } catch (e) {
+    } catch {
       return {
         providerId: 'gemini',
         provider: 'GEMINI',
@@ -162,7 +184,7 @@ export const aiService = {
       const raw = localStorage.getItem(STORAGE_KEYS.AI_KEYS);
       const keys = raw ? JSON.parse(raw) : {};
       return keys[providerId] || '';
-    } catch (e) {
+    } catch {
       return '';
     }
   },
@@ -268,7 +290,6 @@ export const aiService = {
       }
 
       if (protocol === 'ANTHROPIC') {
-        const latencyMs = Math.round(performance.now() - startTime);
         return {
           valid: true,
           status: 200,
@@ -299,7 +320,6 @@ export const aiService = {
     // Safety guardrail: if selected model clearly belongs to a different provider, auto-route!
     const inferredProvider = this.findProviderForModel(model);
     if (inferredProvider && inferredProvider !== providerId) {
-      console.warn(`Model [${model}] is registered to [${inferredProvider}]. Auto-routing provider from [${providerId}] to [${inferredProvider}].`);
       providerId = inferredProvider;
       this.saveConfig({ providerId, model });
     }
@@ -325,7 +345,6 @@ export const aiService = {
     if (protocol === 'GEMINI') {
       const cleanBase = baseUrl.replace(/\/+$/, '');
       const url = `${cleanBase}/models/${model}:generateContent?key=${cleanKey}`;
-
       const payload = {
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
         systemInstruction: {
@@ -337,29 +356,16 @@ export const aiService = {
         }
       };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const msg = errJson.error?.message || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(`Gemini API Error: ${msg}`);
-      }
-
-      const json = await res.json();
+      const json = await postJson(url, { 'Content-Type': 'application/json' }, payload, 'Gemini API');
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
       return extractJson(rawText);
     }
 
     if (protocol === 'OPENAI') {
       const cleanBase = baseUrl.replace(/\/+$/, '');
-      let url = cleanBase;
-      if (!cleanBase.endsWith('/chat/completions') && !cleanBase.endsWith('/openai')) {
-        url = `${cleanBase}/chat/completions`;
-      }
+      const url = cleanBase.endsWith('/chat/completions') || cleanBase.endsWith('/openai')
+        ? cleanBase
+        : `${cleanBase}/chat/completions`;
 
       const payload = {
         model,
@@ -378,19 +384,7 @@ export const aiService = {
         headers['Authorization'] = `Bearer ${cleanKey}`;
       }
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const msg = errJson.error?.message || errJson.message || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(`OpenAI API Error: ${msg}`);
-      }
-
-      const json = await res.json();
+      const json = await postJson(url, headers, payload, 'OpenAI API');
       const rawText = json.choices?.[0]?.message?.content;
       return extractJson(rawText);
     }
@@ -404,24 +398,14 @@ export const aiService = {
         messages: [{ role: 'user', content: userPrompt }]
       };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': cleanKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify(payload)
-      });
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': cleanKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      };
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        const msg = errJson.error?.message || `HTTP ${res.status}: ${res.statusText}`;
-        throw new Error(`Anthropic API Error: ${msg}`);
-      }
-
-      const json = await res.json();
+      const json = await postJson(url, headers, payload, 'Anthropic API');
       const rawText = json.content?.[0]?.text;
       return extractJson(rawText);
     }
@@ -445,13 +429,9 @@ Respond strictly in JSON format matching this schema:
 }`;
 
     const result = await this.executeLlmCall(prompt, customPrompt);
-    const subTasks = Array.isArray(result.subtasks)
-      ? result.subtasks
-      : (Array.isArray(result.subTasks) ? result.subTasks : []);
-
     return {
       taskId: task.id,
-      subTasks,
+      subTasks: extractSubtasks(result),
       rationale: result.rationale || 'Actionable subtasks generated by AI.'
     };
   },
@@ -472,13 +452,9 @@ Respond strictly in JSON format:
 }`;
 
     const result = await this.executeLlmCall(prompt, customPrompt);
-    const subTasks = Array.isArray(result.subtasks)
-      ? result.subtasks
-      : (Array.isArray(result.subTasks) ? result.subTasks : []);
-
     return {
       taskId: task.id,
-      subTasks,
+      subTasks: extractSubtasks(result),
       rationale: result.rationale || 'Supplemental subtasks suggested by AI.'
     };
   },

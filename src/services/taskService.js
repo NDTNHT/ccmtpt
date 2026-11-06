@@ -3,6 +3,8 @@
  * Provides reactive persistence, lifecycle transitions, and JSON backup/restore.
  */
 
+import { calculatePriorityFromDueDate } from '../domain/taskRules.js';
+
 const STORAGE_KEYS = {
   TASKS: 'tactical_tasks_v1',
   PROJECTS: 'tactical_projects_v1'
@@ -75,29 +77,38 @@ const DEFAULT_TASKS = [
   }
 ];
 
+function readStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+  } catch (e) {
+    console.warn(`Failed to parse stored ${key}, restoring defaults:`, e);
+    return fallback;
+  }
+}
+
+function writeStorage(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`Failed to persist ${key} to localStorage:`, e);
+  }
+}
+
+function findTaskIndex(tasks, id) {
+  return tasks.findIndex(t => t.id === id || t.taskId === id);
+}
+
 export const taskService = {
   // Tasks Management
   getTasks() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.TASKS);
-      if (!raw) {
-        this.saveTasks(DEFAULT_TASKS);
-        return DEFAULT_TASKS;
-      }
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_TASKS;
-    } catch (e) {
-      console.warn('Failed to parse stored tasks, restoring defaults:', e);
-      return DEFAULT_TASKS;
-    }
+    return readStorage(STORAGE_KEYS.TASKS, DEFAULT_TASKS);
   },
 
   saveTasks(tasks) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
-    } catch (e) {
-      console.error('Failed to persist tasks to localStorage:', e);
-    }
+    writeStorage(STORAGE_KEYS.TASKS, tasks);
   },
 
   getTaskById(id) {
@@ -121,16 +132,11 @@ export const taskService = {
       priority: payload.priority || 'MEDIUM',
       dueDate: payload.dueDate || new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
       projectId: payload.projectId || 'proj-inbox',
-      subTasks: (payload.subTasks || []).map((st, i) => {
-        if (typeof st === 'string') {
-          return { id: `st-${Date.now()}-${i}`, title: st, completed: false };
-        }
-        return {
-          id: (st.id || `st-${Date.now()}-${i}`).toString(),
-          title: st.title || 'Subtask',
-          completed: !!st.completed
-        };
-      }),
+      subTasks: (payload.subTasks || []).map((st, i) => ({
+        id: (st.id || `st-${Date.now()}-${i}`).toString(),
+        title: typeof st === 'string' ? st : (st.title || 'Subtask'),
+        completed: typeof st === 'string' ? false : !!st.completed
+      })),
       aiSummary: 'Task initialized in local tactical matrix.',
       createdAt: new Date().toISOString()
     };
@@ -154,7 +160,7 @@ export const taskService = {
 
   updateTask(id, partial) {
     const tasks = this.getTasks();
-    const idx = tasks.findIndex(t => t.id === id || t.taskId === id);
+    const idx = findTaskIndex(tasks, id);
     if (idx !== -1) {
       tasks[idx] = { ...tasks[idx], ...partial };
       this.saveTasks(tasks);
@@ -165,16 +171,9 @@ export const taskService = {
 
   refreshPriority(id) {
     const tasks = this.getTasks();
-    const idx = tasks.findIndex(t => t.id === id || t.taskId === id);
+    const idx = findTaskIndex(tasks, id);
     if (idx !== -1) {
-      const task = tasks[idx];
-      if (task.dueDate) {
-        const diffDays = (new Date(task.dueDate) - new Date()) / (1000 * 60 * 60 * 24);
-        if (diffDays < 1) task.priority = 'CRITICAL';
-        else if (diffDays < 3) task.priority = 'HIGH';
-        else if (diffDays < 7) task.priority = 'MEDIUM';
-        else task.priority = 'LOW';
-      }
+      tasks[idx].priority = calculatePriorityFromDueDate(tasks[idx].dueDate);
       this.saveTasks(tasks);
       return tasks[idx];
     }
@@ -183,56 +182,42 @@ export const taskService = {
 
   toggleSubTask(taskId, subTaskId) {
     const tasks = this.getTasks();
-    const task = tasks.find(t => t.id === taskId || t.taskId === taskId);
-    if (task && task.subTasks) {
-      const st = task.subTasks.find(s => s.id === subTaskId);
+    const idx = findTaskIndex(tasks, taskId);
+    if (idx !== -1 && tasks[idx].subTasks) {
+      const st = tasks[idx].subTasks.find(s => s.id === subTaskId);
       if (st) {
         st.completed = !st.completed;
         this.saveTasks(tasks);
-        return task;
+        return tasks[idx];
       }
     }
-    return task;
+    return tasks[idx] || null;
   },
 
   addSubTasks(taskId, newSubTasks) {
     const tasks = this.getTasks();
-    const task = tasks.find(t => t.id === taskId || t.taskId === taskId);
-    if (task) {
-      if (!task.subTasks) task.subTasks = [];
+    const idx = findTaskIndex(tasks, taskId);
+    if (idx !== -1) {
+      if (!tasks[idx].subTasks) tasks[idx].subTasks = [];
       const formatted = newSubTasks.map((title, i) => ({
         id: `st-ai-${Date.now()}-${i}`,
         title,
         completed: false
       }));
-      task.subTasks.push(...formatted);
+      tasks[idx].subTasks.push(...formatted);
       this.saveTasks(tasks);
-      return task;
+      return tasks[idx];
     }
     throw new Error(`Task not found: [${taskId}]`);
   },
 
   // Projects Management
   getProjects() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-      if (!raw) {
-        this.saveProjects(DEFAULT_PROJECTS);
-        return DEFAULT_PROJECTS;
-      }
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_PROJECTS;
-    } catch (e) {
-      return DEFAULT_PROJECTS;
-    }
+    return readStorage(STORAGE_KEYS.PROJECTS, DEFAULT_PROJECTS);
   },
 
   saveProjects(projects) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
-    } catch (e) {
-      console.error('Failed to persist projects:', e);
-    }
+    writeStorage(STORAGE_KEYS.PROJECTS, projects);
   },
 
   createProject(payload) {

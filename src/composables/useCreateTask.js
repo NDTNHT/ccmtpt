@@ -30,12 +30,14 @@ export function useCreateTask({ props, emit }) {
     subTasks: []
   });
 
+  const isInbox = (p) => (p?.projectType === 'INBOX' || p?.type === 'INBOX');
+
   const inboxProject = computed(() => {
-    return projectList.value.find((p) => p.type === 'INBOX') || null;
+    return projectList.value.find(isInbox) || null;
   });
 
   const regularProjects = computed(() => {
-    return projectList.value.filter((p) => p.type === 'REGULAR');
+    return projectList.value.filter((p) => !isInbox(p));
   });
 
   const selectedProject = computed(() => {
@@ -43,7 +45,7 @@ export function useCreateTask({ props, emit }) {
   });
 
   const selectedProjectType = computed(() => {
-    return selectedProject.value ? selectedProject.value.type : 'INBOX';
+    return selectedProject.value && !isInbox(selectedProject.value) ? 'REGULAR' : 'INBOX';
   });
 
   const priorityOptions = TASK_PRIORITY_OPTIONS;
@@ -65,14 +67,13 @@ export function useCreateTask({ props, emit }) {
       const data = taskService.getProjects();
       if (Array.isArray(data)) {
         projectList.value = data;
-        // Default to the first REGULAR project if available, or first available project
         if (!form.projectId || !data.some((p) => p.id === form.projectId)) {
-          const firstRegular = data.find((p) => p.type === 'REGULAR');
-          form.projectId = firstRegular ? firstRegular.id : data[0] ? data[0].id : null;
+          const firstRegular = data.find((p) => !isInbox(p));
+          form.projectId = firstRegular ? firstRegular.id : (data[0]?.id || null);
         }
       }
     } catch (err) {
-      console.warn('Projects endpoint unreachable, using default inbox:', err.message);
+      console.warn('Failed to load projects:', err.message);
     }
   }
 
@@ -233,4 +234,3 @@ export function useCreateTask({ props, emit }) {
     handleSubmit
   };
 }
-

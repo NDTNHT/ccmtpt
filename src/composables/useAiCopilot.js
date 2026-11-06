@@ -27,7 +27,7 @@ export function useAiCopilot({ emit }) {
   async function handleDecompose() {
     if (!selectedTask.value) return;
     try {
-      await decomposeTask(selectedTask.value.id, selectedTask.value.title);
+      await decomposeTask(selectedTask.value.id);
       emit('notify', 'Checklist items generated.', 'success');
     } catch (err) {
       emit('notify', err.message, 'error');
@@ -67,7 +67,7 @@ export function useAiCopilot({ emit }) {
   async function handleRunFullAudit() {
     if (!selectedTask.value) return;
     try {
-      await runFullAnalysis(selectedTask.value.id, selectedTask.value.title);
+      await runFullAnalysis(selectedTask.value.id);
       emit('notify', 'Full AI analysis completed.', 'success');
     } catch (err) {
       emit('notify', err.message, 'error');
@@ -120,9 +120,11 @@ export function useAiCopilot({ emit }) {
     if (res.data.summary?.summary) {
       updates.aiSummary = res.data.summary.summary;
     }
-    updateTaskInState(selectedTask.value.id, updates);
+    if (Object.keys(updates).length > 0) {
+      updateTaskInState(selectedTask.value.id, updates);
+    }
 
-    if (res.data.decomposition?.subTasks) {
+    if (res.data.decomposition?.subTasks?.length) {
       addSubTasks(selectedTask.value.id, res.data.decomposition.subTasks);
     }
     emit('notify', 'All AI recommendations applied to task.', 'success');
@@ -145,4 +147,3 @@ export function useAiCopilot({ emit }) {
     applyFullAuditResult
   };
 }
-

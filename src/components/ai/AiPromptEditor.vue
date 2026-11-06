@@ -32,7 +32,7 @@
         <div class="verify-header">
           <span class="verify-lbl">/// PROVIDER ENDPOINT &amp; API KEY</span>
           <span v-if="state.verification.valid" class="ascii-badge badge-green">
-            [VERIFIED: {{ state.verification.discoveredModels }} MODELS // {{ state.verification.latencyMs }}ms]
+            [VERIFIED: {{ state.verification.discoveredModelsCount || availableModels.length }} MODELS // {{ state.verification.latencyMs }}ms]
           </span>
           <span v-else class="ascii-badge badge-dim">[AWAITING API KEY]</span>
         </div>

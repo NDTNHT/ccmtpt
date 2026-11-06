@@ -26,10 +26,10 @@ watch(
 
 export function useTaskStore() {
   const filteredTasks = computed(() => {
+    const q = state.searchQuery.trim().toLowerCase();
     return state.tasks.filter((t) => {
       const matchesStatus = state.statusFilter === 'ALL' || t.status === state.statusFilter;
       const matchesPriority = state.priorityFilter === 'ALL' || t.priority === state.priorityFilter;
-      const q = state.searchQuery.trim().toLowerCase();
       const matchesQuery = !q ||
         t.title.toLowerCase().includes(q) ||
         (t.description && t.description.toLowerCase().includes(q)) ||
@@ -40,10 +40,18 @@ export function useTaskStore() {
 
   const taskStats = computed(() => {
     const total = state.tasks.length;
-    const todo = state.tasks.filter((t) => t.status === 'TODO').length;
-    const inProgress = state.tasks.filter((t) => t.status === 'IN_PROGRESS').length;
-    const completed = state.tasks.filter((t) => t.status === 'COMPLETED').length;
-    const cancelled = state.tasks.filter((t) => t.status === 'CANCELLED').length;
+    let todo = 0;
+    let inProgress = 0;
+    let completed = 0;
+    let cancelled = 0;
+
+    for (const t of state.tasks) {
+      if (t.status === 'TODO') todo++;
+      else if (t.status === 'IN_PROGRESS') inProgress++;
+      else if (t.status === 'COMPLETED') completed++;
+      else if (t.status === 'CANCELLED') cancelled++;
+    }
+
     const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, todo, inProgress, completed, cancelled, completionRate };
   });
@@ -75,38 +83,24 @@ export function useTaskStore() {
     }
   }
 
-  async function startTask(taskId) {
+  function setTaskStatus(taskId, status) {
     try {
-      const updated = taskService.startTask(taskId);
+      const updated = taskService.updateTask(taskId, { status });
       updateTaskInState(taskId, updated);
-    } catch (err) {
-      updateTaskInState(taskId, { status: 'IN_PROGRESS' });
+    } catch {
+      updateTaskInState(taskId, { status });
     }
   }
 
-  async function completeTask(taskId) {
-    try {
-      const updated = taskService.completeTask(taskId);
-      updateTaskInState(taskId, updated);
-    } catch (err) {
-      updateTaskInState(taskId, { status: 'COMPLETED' });
-    }
-  }
-
-  async function cancelTask(taskId) {
-    try {
-      const updated = taskService.cancelTask(taskId);
-      updateTaskInState(taskId, updated);
-    } catch (err) {
-      updateTaskInState(taskId, { status: 'CANCELLED' });
-    }
-  }
+  const startTask = (taskId) => setTaskStatus(taskId, 'IN_PROGRESS');
+  const completeTask = (taskId) => setTaskStatus(taskId, 'COMPLETED');
+  const cancelTask = (taskId) => setTaskStatus(taskId, 'CANCELLED');
 
   async function refreshPriority(taskId) {
     try {
       const updated = taskService.refreshPriority(taskId);
       updateTaskInState(taskId, updated);
-    } catch (err) {
+    } catch {
       console.warn('Priority refresh locally handled');
     }
   }
@@ -115,10 +109,10 @@ export function useTaskStore() {
     const idx = state.tasks.findIndex((t) => t.id === taskId);
     if (idx !== -1) {
       state.tasks[idx] = { ...state.tasks[idx], ...partial };
-      if (state.selectedTask && state.selectedTask.id === taskId) {
+      if (state.selectedTask?.id === taskId) {
         state.selectedTask = state.tasks[idx];
       }
-      if (state.hoveredTask && state.hoveredTask.id === taskId) {
+      if (state.hoveredTask?.id === taskId) {
         state.hoveredTask = state.tasks[idx];
       }
       taskService.saveTasks(state.tasks);
@@ -135,11 +129,11 @@ export function useTaskStore() {
 
   function toggleSubTask(taskId, subTaskId) {
     const task = state.tasks.find((t) => t.id === taskId);
-    if (!task || !task.subTasks) return;
+    if (!task?.subTasks) return;
     const st = task.subTasks.find((s) => s.id === subTaskId);
     if (st) {
       st.completed = !st.completed;
-      if (state.selectedTask && state.selectedTask.id === taskId) {
+      if (state.selectedTask?.id === taskId) {
         state.selectedTask = { ...task };
       }
       taskService.saveTasks(state.tasks);
@@ -156,7 +150,7 @@ export function useTaskStore() {
       completed: false
     }));
     task.subTasks.push(...formatted);
-    if (state.selectedTask && state.selectedTask.id === taskId) {
+    if (state.selectedTask?.id === taskId) {
       state.selectedTask = { ...task };
     }
     taskService.saveTasks(state.tasks);

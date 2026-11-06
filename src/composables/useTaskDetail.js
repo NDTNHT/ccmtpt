@@ -15,7 +15,6 @@ export function useTaskDetail({ props, emit }) {
 
   const aiLoading = ref(false);
   const aiFeedback = ref(null);
-  const newSubTaskTitle = ref('');
 
   const totalSubTasks = computed(() => props.task?.subTasks?.length || 0);
   const completedCount = computed(() => {
@@ -26,17 +25,11 @@ export function useTaskDetail({ props, emit }) {
     return props.task ? getStatusColorClass(props.task.status) : '';
   });
 
-  function onAddSubTask() {
-    if (!newSubTaskTitle.value.trim() || !props.task) return;
-    addSubTasks(props.task.id, [newSubTaskTitle.value.trim()]);
-    newSubTaskTitle.value = '';
-  }
-
   async function onAiDecompose() {
     if (!props.task) return;
     aiLoading.value = true;
     try {
-      const res = await decomposeTask(props.task.id, props.task.title);
+      const res = await decomposeTask(props.task.id);
       aiFeedback.value = {
         timestamp: new Date().toLocaleTimeString(),
         text: `Generated ${res.subTasks.length} checklist items. ${res.rationale || ''}`,
@@ -81,7 +74,7 @@ export function useTaskDetail({ props, emit }) {
       const res = await analyzePriority(props.task.id);
       aiFeedback.value = {
         timestamp: new Date().toLocaleTimeString(),
-        text: `Recommended Priority: [${res.recommendedPriority}] (Urgency: ${res.urgencyScore}/100, Impact: ${res.impactScore}/100). ${res.reasoning || ''}`,
+        text: `Recommended Priority: [${res.recommendedPriority}]. ${res.reasoning || ''}`,
         applyPayload: {
           type: 'PRIORITY',
           priority: res.recommendedPriority
@@ -139,11 +132,9 @@ export function useTaskDetail({ props, emit }) {
   return {
     aiLoading,
     aiFeedback,
-    newSubTaskTitle,
     totalSubTasks,
     completedCount,
     statusColorClass,
-    onAddSubTask,
     onAiDecompose,
     onAiEstimateDeadline,
     onAiAnalyzePriority,
@@ -151,4 +142,3 @@ export function useTaskDetail({ props, emit }) {
     applyAiRecommendation
   };
 }
-

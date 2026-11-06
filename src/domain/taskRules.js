@@ -39,3 +39,13 @@ export function getStatusColorClass(status) {
   }
 }
 
+export function calculatePriorityFromDueDate(dueDate) {
+  if (!dueDate) return 'MEDIUM';
+  const diffDays = (new Date(dueDate) - new Date()) / (1000 * 60 * 60 * 24);
+  if (diffDays < 1) return 'CRITICAL';
+  if (diffDays < 3) return 'HIGH';
+  if (diffDays < 7) return 'MEDIUM';
+  return 'LOW';
+}
+
+

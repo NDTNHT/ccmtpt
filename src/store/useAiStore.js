@@ -81,7 +81,7 @@ export function useAiStore() {
       p.active = p.id === providerId;
     });
 
-    const provider = activeProvider.value;
+    const provider = state.providers.find((p) => p.id === providerId) || state.providers[0];
     const key = aiService.getKey(providerId);
 
     state.config.providerId = providerId;
@@ -89,9 +89,15 @@ export function useAiStore() {
     state.config.baseUrl = provider.baseUrl;
     state.config.apiKey = key || '';
 
-    if (key) {
+    // Clear stale discovered models from previous provider
+    state.verification.discoveredModelsList = [];
+    state.verification.discoveredModelsCount = 0;
+
+    if (key || providerId === 'pollinations') {
       state.verification.valid = true;
-      state.verification.message = `Stored API Key loaded for [${provider.name}].`;
+      state.verification.message = key
+        ? `Stored API Key loaded for [${provider.name}].`
+        : `Free public gateway active for [${provider.name}]. No API key required.`;
     } else {
       state.verification.valid = false;
       state.verification.message = `No API key saved for [${provider.name}]. Please enter your API key.`;
@@ -104,10 +110,11 @@ export function useAiStore() {
     aiService.saveConfig({
       providerId,
       baseUrl: provider.baseUrl,
-      model: state.config.model
+      model: state.config.model,
+      apiKey: state.config.apiKey
     });
 
-    addLog('PROVIDER', `Switched active AI engine to [${providerId.toUpperCase()}]`, 'SUCCESS');
+    addLog('PROVIDER', `Switched active AI engine to [${provider.name.toUpperCase()}] (${state.config.model})`, 'SUCCESS');
   }
 
   async function verifyProvider(baseUrl, apiKey, protocol = 'OPENAI', timeoutSeconds = 15) {
@@ -175,6 +182,13 @@ export function useAiStore() {
 
   function selectModel(modelName) {
     if (!modelName) return;
+
+    // Auto-detect and switch provider if this model belongs to another provider
+    const targetProviderId = aiService.findProviderForModel(modelName);
+    if (targetProviderId && targetProviderId !== state.activeProviderId) {
+      activateProvider(targetProviderId);
+    }
+
     state.config.model = modelName;
     const provider = state.providers.find((p) => p.id === state.activeProviderId);
     if (provider) {
@@ -185,7 +199,7 @@ export function useAiStore() {
       baseUrl: state.config.baseUrl,
       model: modelName
     });
-    addLog('MODEL_SELECT', `Active model set to [${modelName}]`, 'SUCCESS');
+    addLog('MODEL_SELECT', `Active model set to [${modelName}] on [${state.activeProviderId.toUpperCase()}]`, 'SUCCESS');
   }
 
   function setCustomPrompt(prompt) {
@@ -202,8 +216,9 @@ export function useAiStore() {
 
   // AI Operations
   async function runAiOp(opName, fnName, taskId) {
+    const isFreePollinations = state.activeProviderId === 'pollinations';
     const currentKey = aiService.getKey(state.activeProviderId) || state.config.apiKey;
-    if (!currentKey || currentKey.trim() === '') {
+    if (!isFreePollinations && (!currentKey || currentKey.trim() === '')) {
       const err = new Error(`NO API KEY: Please switch to AI COPILOT & SETTINGS [02//] and provide your API key for [${activeProvider.value.name}].`);
       addLog('AI_ERR', err.message, 'ERROR');
       throw err;
@@ -211,7 +226,7 @@ export function useAiStore() {
 
     const task = taskService.getTaskById(taskId);
     state.executingAiOp = true;
-    addLog('AI_DISPATCH', `Dispatching ${opName} for Target [${taskId}] to ${state.config.model}...`, 'RUNNING');
+    addLog('AI_DISPATCH', `Dispatching ${opName} for Target [${taskId}] to [${state.activeProviderId.toUpperCase()}] (${state.config.model})...`, 'RUNNING');
     try {
       const result = await aiService[fnName](task, state.customSystemPrompt);
       state.activeAiResult = {
@@ -220,7 +235,7 @@ export function useAiStore() {
         data: result,
         timestamp: new Date().toLocaleTimeString()
       };
-      addLog('AI_RESOLVED', `${opName} completed successfully. Telemetry payload bound.`, 'SUCCESS');
+      addLog('AI_RESOLVED', `${opName} completed successfully via [${state.activeProviderId.toUpperCase()}].`, 'SUCCESS');
       return result;
     } catch (error) {
       addLog('AI_ERR', `${opName} failed: ${error.message}`, 'ERROR');

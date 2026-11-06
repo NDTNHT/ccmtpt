@@ -22,36 +22,26 @@ export function useAiPromptEditor({ emit }) {
     if (state.verification.discoveredModelsList && state.verification.discoveredModelsList.length > 0) {
       list.push(...state.verification.discoveredModelsList);
     } else {
-      const providerModels = activeProvider.value?.availableModels;
+      const provider = state.providers.find((p) => p.id === state.activeProviderId) || activeProvider.value;
+      const providerModels = provider?.availableModels;
       if (Array.isArray(providerModels) && providerModels.length > 0) {
         list.push(...providerModels);
-      } else if (activeProvider.value?.defaultModel) {
-        list.push(activeProvider.value.defaultModel);
+      } else if (provider?.defaultModel) {
+        list.push(provider.defaultModel);
       }
     }
     if (state.config.model && !list.includes(state.config.model)) {
       list.unshift(state.config.model);
     }
-    return list.length > 0 ? list : ['qwen/qwen3.7-flash', 'openai/gpt-4o', 'anthropic/claude-3-5-sonnet'];
+    return list;
   });
 
   const popularModels = computed(() => {
-    const all = availableModels.value;
-    if (all.length <= 1) return [];
-    const presets = [
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'qwen/qwen3.7-flash',
-      'openai/gpt-4o',
-      'openai/gpt-4o-mini',
-      'gpt-4o-mini',
-      'claude-3-5-sonnet-20241022',
-      'anthropic/claude-3-5-sonnet',
-      'deepseek/deepseek-chat'
-    ];
-    const matched = presets.filter((p) => all.includes(p));
-    return matched.length > 0 ? matched.slice(0, 5) : all.slice(0, 5);
+    const provider = state.providers.find((p) => p.id === state.activeProviderId) || activeProvider.value;
+    if (provider && Array.isArray(provider.availableModels)) {
+      return provider.availableModels.slice(0, 5);
+    }
+    return availableModels.value.slice(0, 5);
   });
 
   const modelSearchQuery = ref('');
@@ -77,9 +67,11 @@ export function useAiPromptEditor({ emit }) {
 
   watch(
     () => state.activeProviderId,
-    () => {
-      verifyBaseUrl.value = activeProvider.value.baseUrl;
+    (newId) => {
+      const provider = state.providers.find((p) => p.id === newId) || activeProvider.value;
+      verifyBaseUrl.value = provider ? provider.baseUrl : state.config.baseUrl;
       verifyApiKey.value = state.config.apiKey || '';
+      modelSearchQuery.value = '';
     }
   );
 
@@ -96,14 +88,15 @@ export function useAiPromptEditor({ emit }) {
 
   async function handleVerify() {
     try {
+      const provider = state.providers.find((p) => p.id === state.activeProviderId) || activeProvider.value;
       const res = await verifyProvider(
         verifyBaseUrl.value,
         verifyApiKey.value,
-        activeProvider.value.protocol
+        provider.protocol
       );
       emit(
         'notify',
-        `Gateway Verified! Handshake accepted with ${res.modelCount || (res.discoveredModels ? res.discoveredModels.length : 237)} models available.`,
+        `Gateway Verified! Handshake accepted with ${res.modelCount || (res.discoveredModels ? res.discoveredModels.length : 4)} models available.`,
         'success'
       );
     } catch (err) {

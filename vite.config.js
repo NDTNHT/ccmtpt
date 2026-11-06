@@ -15,5 +15,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: ['./tests/setup.js'],
+    include: ['tests/**/*.test.js']
   }
 });

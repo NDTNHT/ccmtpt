@@ -78,14 +78,15 @@ const DEFAULT_TASKS = [
 ];
 
 function readStorage(key, fallback) {
+  const cloneFallback = () => JSON.parse(JSON.stringify(fallback));
   try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+    if (!raw) return cloneFallback();
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : fallback;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : cloneFallback();
   } catch (e) {
     console.warn(`Failed to parse stored ${key}, restoring defaults:`, e);
-    return fallback;
+    return cloneFallback();
   }
 }
 

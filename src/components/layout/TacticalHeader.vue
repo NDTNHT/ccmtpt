@@ -30,6 +30,17 @@
     </div>
 
     <div class="header-actions">
+      <button
+        type="button"
+        class="tactical-btn theme-toggle"
+        :aria-pressed="theme === 'light'"
+        :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        @click="toggleTheme"
+      >
+        <span aria-hidden="true">{{ theme === 'dark' ? '☀' : '☾' }}</span>
+        {{ theme === 'dark' ? 'LIGHT MODE' : 'DARK MODE' }}
+      </button>
       <div class="status-badge-group">
         <span class="ascii-badge">TASKS: {{ taskStats.total }}</span>
         <span class="ascii-badge text-amber">IN PROGRESS: {{ taskStats.inProgress }}</span>
@@ -45,7 +56,11 @@
 </template>
 
 <script setup>
+import { useTheme } from '../../composables/useTheme.js';
+
 import { useTacticalHeader } from '../../composables/useTacticalHeader.js';
+
+const { theme, toggleTheme } = useTheme();
 
 const {
   taskStats,
@@ -142,13 +157,29 @@ const {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: #181818;
-  border: 1px solid #444444;
+  background: var(--bg-card);
+  border: 1px solid var(--color-border-heavy);
   font-size: 0.75rem;
   font-weight: 800;
 }
 
 .indicator-prefix {
   color: var(--color-text-muted);
+}
+.theme-toggle {
+  gap: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 1200px) {
+  .tactical-header, .header-actions, .system-telemetry, .brand-logo, .status-badge-group {
+    flex-wrap: wrap;
+  }
+
+  .tactical-header {
+    gap: 12px;
+  }
 }
 </style>

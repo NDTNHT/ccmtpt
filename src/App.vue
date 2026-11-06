@@ -112,6 +112,7 @@ function handleNotify(message, level = 'info') {
   background: radial-gradient(circle, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 100%);
   pointer-events: none;
   z-index: 9998;
+  opacity: var(--crt-opacity);
 }
 
 .crt-scanline {
@@ -124,6 +125,6 @@ function handleNotify(message, level = 'info') {
   background-size: 100% 4px;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.7;
+  opacity: calc(0.7 * var(--crt-opacity));
 }
 </style>

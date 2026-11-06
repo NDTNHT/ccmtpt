@@ -108,7 +108,7 @@ function statusColorClass(status) {
 }
 
 .terminal-screen {
-  background: #050505;
+  background: var(--color-surface-sunken);
   padding: 12px 16px;
   max-height: 240px;
   overflow-y: auto;

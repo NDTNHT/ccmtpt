@@ -335,8 +335,8 @@ const isOverdue = computed(() => {
 }
 
 .mini-btn {
-  background: #181818 !important;
-  border: 1px solid #3E3E3E !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--color-border) !important;
   padding: 4px 10px;
   font-family: var(--font-mono-code);
   font-size: 0.72rem;
@@ -347,9 +347,9 @@ const isOverdue = computed(() => {
 }
 
 .mini-btn:hover {
-  background: #262626 !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
-  color: #FFFFFF !important;
+  color: var(--color-text-main) !important;
 }
 
 .mini-btn.text-amber:hover {
@@ -363,8 +363,8 @@ const isOverdue = computed(() => {
 }
 
 .ai-inspect-btn {
-  background: #181818 !important;
-  border: 1px solid #444444 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--color-border-heavy) !important;
   color: var(--color-neon-amber) !important;
   padding: 5px 12px;
   font-weight: 800;
@@ -395,8 +395,8 @@ const isOverdue = computed(() => {
 }
 
 .ai-inspect-btn:hover {
-  background: #262626 !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
-  box-shadow: 0 0 10px rgba(255, 184, 0, 0.3);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 </style>

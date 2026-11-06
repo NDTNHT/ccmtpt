@@ -190,8 +190,8 @@ function handleImportFile(event) {
 }
 
 .led-online {
-  background: #00E676;
-  box-shadow: 0 0 6px #00E676;
+  background: var(--color-neon-green);
+  box-shadow: 0 0 6px var(--color-neon-green);
 }
 
 .status-code {

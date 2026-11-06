@@ -276,7 +276,7 @@ const {
 
 .tactical-btn-run-all {
   background: var(--color-neon-amber);
-  color: #000;
+  color: var(--color-on-accent);
   border: none;
   padding: 8px 16px;
   font-family: inherit;
@@ -287,7 +287,7 @@ const {
 }
 
 .tactical-btn-run-all:hover:not(:disabled) {
-  background: #ffc400;
+  background: var(--color-neon-amber);
 }
 
 .tactical-btn-run-all:disabled {
@@ -354,7 +354,7 @@ const {
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(74, 246, 38, 0.05);
+  background: var(--success-tint);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -453,6 +453,6 @@ const {
 
 .tactical-btn-apply:hover {
   background: var(--color-neon-green);
-  color: #000;
+  color: var(--color-on-accent);
 }
 </style>

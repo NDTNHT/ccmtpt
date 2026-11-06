@@ -182,7 +182,7 @@ const {
 .tactical-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.88);
+  background: var(--modal-backdrop);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   display: flex;
@@ -193,14 +193,14 @@ const {
 }
 
 .tactical-modal-window {
-  background: #111111 !important;
-  border: 2px solid #4A4A4A !important;
+  background: var(--color-surface) !important;
+  border: 2px solid var(--color-border-heavy) !important;
   width: 780px;
   max-width: 95vw;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.98), 0 0 0 1px #222222;
+  box-shadow: var(--modal-shadow);
   font-family: var(--font-mono-code);
   position: relative;
 }
@@ -238,7 +238,7 @@ const {
   align-items: center;
   padding: 14px 20px;
   border-bottom: 2px solid var(--color-border-heavy);
-  background: #080808 !important;
+  background: var(--color-surface-sunken) !important;
 }
 
 .header-tag {
@@ -256,7 +256,7 @@ const {
 }
 
 .modal-close-btn {
-  background: #1A1A1A;
+  background: var(--bg-card);
   border: 1px solid var(--color-border-heavy);
   color: var(--color-text-dim);
   padding: 5px 12px;
@@ -270,7 +270,7 @@ const {
 .modal-close-btn:hover {
   background: var(--color-alert-red);
   border-color: var(--color-alert-red);
-  color: #000000;
+  color: var(--color-on-accent);
 }
 
 .modal-body {
@@ -279,14 +279,14 @@ const {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #111111;
+  background: var(--color-surface);
 }
 
 .spec-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  background: #181818 !important;
+  background: var(--bg-card) !important;
   padding: 12px;
   border: 1px solid var(--color-border-heavy);
 }
@@ -318,7 +318,7 @@ const {
 }
 
 .desc-box {
-  background: #0A0A0A !important;
+  background: var(--color-surface-sunken) !important;
   border: 1px solid var(--color-border-heavy);
   padding: 12px;
   font-family: var(--font-mono-body);
@@ -334,8 +334,8 @@ const {
 }
 
 .ai-action-btn {
-  background: #1A1A1A !important;
-  border: 1px solid #444444 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--color-border-heavy) !important;
   color: var(--color-neon-amber) !important;
   padding: 10px 8px !important;
   font-family: var(--font-mono-code);
@@ -371,9 +371,9 @@ const {
 }
 
 .ai-action-btn:hover:not(:disabled) {
-  background: #282828 !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
-  box-shadow: 0 0 10px rgba(255, 184, 0, 0.3);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .ai-action-btn:disabled {
@@ -382,7 +382,7 @@ const {
 }
 
 .ai-telemetry-banner {
-  background: #1A1608 !important;
+  background: var(--color-surface-sunken) !important;
   border: 1px solid var(--color-neon-amber);
   padding: 14px;
   display: flex;
@@ -424,7 +424,7 @@ const {
   color: var(--color-text-muted);
   font-style: italic;
   padding: 12px;
-  background: #0A0A0A;
+  background: var(--color-surface-sunken);
   border: 1px dashed var(--color-border);
 }
 
@@ -439,14 +439,14 @@ const {
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  background: #181818 !important;
-  border: 1px solid #333333 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--color-border) !important;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .subtask-row:hover {
-  background: #242424 !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
 }
 
@@ -484,7 +484,7 @@ const {
 
 .tactical-input {
   flex: 1;
-  background: #0A0A0A !important;
+  background: var(--color-surface-sunken) !important;
   border: 1px solid var(--color-border-heavy);
   padding: 8px 12px;
   color: var(--color-text-main);
@@ -498,8 +498,8 @@ const {
 }
 
 .tactical-btn-sm {
-  background: #1E1E1E !important;
-  border: 1px solid #444444 !important;
+  background: var(--color-surface-hover) !important;
+  border: 1px solid var(--color-border-heavy) !important;
   color: var(--color-text-main);
   padding: 8px 16px;
   font-family: var(--font-mono-code);
@@ -510,7 +510,7 @@ const {
 }
 
 .tactical-btn-sm:hover:not(:disabled) {
-  background: #2E2E2E !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
 }
 
@@ -520,7 +520,7 @@ const {
   align-items: center;
   padding: 14px 20px;
   border-top: 2px solid var(--color-border-heavy);
-  background: #080808 !important;
+  background: var(--color-surface-sunken) !important;
 }
 
 .footer-status {

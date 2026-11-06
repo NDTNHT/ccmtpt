@@ -204,7 +204,7 @@ const {
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-sunken);
   border-bottom: 1px solid var(--color-border-heavy);
 }
 
@@ -274,7 +274,7 @@ const {
 }
 
 .provider-chip.active {
-  background: var(--color-surface-hover);
+  background: var(--color-surface-hover);
   border-color: var(--color-neon-amber);
   color: var(--color-neon-amber);
   font-weight: 800;
@@ -290,7 +290,7 @@ const {
 }
 
 .verification-box {
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border);
   padding: 12px 14px;
   display: flex;
@@ -395,7 +395,7 @@ const {
 
 .tactical-btn-verify:hover:not(:disabled) {
   background: var(--color-neon-amber);
-  color: #000;
+  color: var(--color-on-accent);
 }
 
 .verify-msg {
@@ -404,7 +404,7 @@ const {
 }
 
 .model-selector-box {
-  background: var(--color-surface-sunken);
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border);
   padding: 12px 14px;
   display: flex;
@@ -450,7 +450,7 @@ const {
 
 .model-search-input {
   max-width: 320px;
-  background: #101010;
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-heavy);
   padding: 4px 8px;
   font-size: 0.72rem;
@@ -463,7 +463,7 @@ const {
 }
 
 .model-select {
-  background: #101010;
+  background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-heavy);
   color: var(--color-text-main);
   padding: 8px 10px;
@@ -490,7 +490,7 @@ const {
 }
 
 .quick-model-btn {
-  background: #181818;
+  background: var(--bg-card);
   border: 1px solid var(--color-border);
   color: var(--color-text-dim);
   padding: 3px 8px;
@@ -507,7 +507,7 @@ const {
 }
 
 .quick-model-btn.active {
-  background: #252525;
+  background: var(--color-surface-hover);
   border-color: var(--color-neon-amber);
   color: var(--color-neon-amber);
 }
@@ -551,7 +551,7 @@ const {
 }
 
 .tactical-btn-xs:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-surface-hover);
   color: var(--color-text-main);
 }
 

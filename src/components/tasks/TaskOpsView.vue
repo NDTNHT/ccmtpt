@@ -366,7 +366,7 @@ const {
 .primary-dispatch-btn {
   background: var(--color-neon-amber);
   border: 1px solid var(--color-neon-amber);
-  color: #000000;
+  color: var(--color-on-accent);
   font-family: var(--font-mono-code);
   font-size: 0.8rem;
   font-weight: 800;
@@ -381,8 +381,8 @@ const {
 }
 
 .primary-dispatch-btn:hover {
-  background: #FFCA28;
-  box-shadow: 0 0 12px rgba(255, 184, 0, 0.45);
+  background: var(--color-neon-amber);
+  box-shadow: 0 0 12px var(--accent-glow);
   transform: translateY(-1px);
 }
 
@@ -391,7 +391,7 @@ const {
 }
 
 .dispatch-bracket {
-  color: #222222;
+  color: var(--color-surface-hover);
   font-weight: bold;
 }
 
@@ -518,7 +518,7 @@ const {
 
 .open-modal-link-btn:hover {
   background: var(--color-neon-amber);
-  color: #000000;
+  color: var(--color-on-accent);
 }
 
 .toggle-icon {
@@ -595,7 +595,7 @@ const {
 
 .tactical-btn-submit {
   background: var(--color-neon-amber) !important;
-  color: #000000 !important;
+  color: var(--color-on-accent) !important;
   border: 1px solid var(--color-neon-amber) !important;
   padding: 8px 18px;
   font-family: inherit;
@@ -612,8 +612,8 @@ const {
   left: -2px;
   width: 6px;
   height: 6px;
-  border-top: 2px solid #FFFFFF;
-  border-left: 2px solid #FFFFFF;
+  border-top: 2px solid var(--color-text-main);
+  border-left: 2px solid var(--color-text-main);
 }
 
 .tactical-btn-submit::after {
@@ -623,13 +623,13 @@ const {
   right: -2px;
   width: 6px;
   height: 6px;
-  border-bottom: 2px solid #FFFFFF;
-  border-right: 2px solid #FFFFFF;
+  border-bottom: 2px solid var(--color-text-main);
+  border-right: 2px solid var(--color-text-main);
 }
 
 .tactical-btn-submit:hover:not(:disabled) {
-  background: #ffc400 !important;
-  box-shadow: 0 0 10px rgba(255, 184, 0, 0.4);
+  background: var(--color-neon-amber) !important;
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .tactical-btn-submit:disabled {
@@ -779,7 +779,7 @@ const {
 }
 
 .ai-summary-card {
-  background: rgba(255, 179, 0, 0.06);
+  background: var(--accent-tint);
   border: 1px solid var(--color-neon-amber);
   padding: 8px;
   font-size: 0.72rem;
@@ -803,8 +803,8 @@ const {
 
 .tactical-btn-block {
   width: 100%;
-  background: #181818 !important;
-  border: 1px solid #444444 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--color-border-heavy) !important;
   color: var(--color-neon-amber) !important;
   padding: 10px;
   font-family: inherit;
@@ -838,9 +838,9 @@ const {
 }
 
 .tactical-btn-block:hover {
-  background: #252525 !important;
+  background: var(--color-surface-hover) !important;
   border-color: var(--color-neon-amber) !important;
-  box-shadow: 0 0 10px rgba(255, 184, 0, 0.3);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .empty-inspector {

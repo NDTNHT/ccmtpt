@@ -87,7 +87,7 @@ export function useTaskStore() {
     try {
       const updated = taskService.updateTask(taskId, { status });
       updateTaskInState(taskId, updated);
-    } catch {
+    } catch (err) {
       updateTaskInState(taskId, { status });
     }
   }
@@ -100,7 +100,7 @@ export function useTaskStore() {
     try {
       const updated = taskService.refreshPriority(taskId);
       updateTaskInState(taskId, updated);
-    } catch {
+    } catch (err) {
       console.warn('Priority refresh locally handled');
     }
   }

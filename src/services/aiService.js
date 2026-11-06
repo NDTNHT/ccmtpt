@@ -57,7 +57,7 @@ function extractJson(rawText) {
 
   try {
     return JSON.parse(cleaned);
-  } catch {
+  } catch (err) {
     const firstBrace = cleaned.indexOf('{');
     const firstBracket = cleaned.indexOf('[');
     let startIdx = -1;
@@ -151,7 +151,7 @@ export const aiService = {
         apiKey: key || '',
         timeoutSeconds: parsed.timeoutSeconds || 15
       };
-    } catch {
+    } catch (err) {
       return {
         providerId: 'gemini',
         provider: 'GEMINI',
@@ -184,7 +184,7 @@ export const aiService = {
       const raw = localStorage.getItem(STORAGE_KEYS.AI_KEYS);
       const keys = raw ? JSON.parse(raw) : {};
       return keys[providerId] || '';
-    } catch {
+    } catch (err) {
       return '';
     }
   },

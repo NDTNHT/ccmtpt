@@ -43,7 +43,7 @@ const DEFAULT_PROVIDERS = [
     protocol: 'OPENAI',
     baseUrl: 'https://text.pollinations.ai/openai',
     defaultModel: 'openai-fast',
-    availableModels: ['openai-fast', 'qwen', 'openai', 'mistral', 'qwen/qwen3.7-flash'],
+    availableModels: ['openai-fast', 'openai', 'mistral'],
     active: false
   }
 ];
@@ -91,7 +91,7 @@ export const aiService = {
     const m = modelName.toLowerCase();
     if (m.startsWith('gemini')) return 'gemini';
     if (m.startsWith('claude') || m.includes('anthropic')) return 'anthropic';
-    if (m.includes('qwen') || m.includes('pollinations') || m === 'openai-fast' || m === 'mistral') return 'pollinations';
+    if (m === 'openai-fast' || m === 'mistral' || m.includes('pollinations')) return 'pollinations';
     if (m.startsWith('gpt') || m.startsWith('o1') || m.startsWith('o3')) return 'openai';
     for (const p of DEFAULT_PROVIDERS) {
       if (p.availableModels.includes(modelName)) return p.id;
@@ -115,11 +115,17 @@ export const aiService = {
       const providerId = parsed.providerId || 'gemini';
       const provider = DEFAULT_PROVIDERS.find(p => p.id === providerId) || DEFAULT_PROVIDERS[0];
       const key = this.getKey(providerId);
+
+      let model = parsed.model;
+      if (!model || !provider.availableModels.includes(model)) {
+        model = provider.defaultModel;
+      }
+
       return {
         providerId,
         provider: providerId.toUpperCase(),
         baseUrl: parsed.baseUrl || provider.baseUrl,
-        model: parsed.model || provider.defaultModel,
+        model,
         apiKey: key || '',
         timeoutSeconds: parsed.timeoutSeconds || 15
       };
@@ -230,8 +236,8 @@ export const aiService = {
             valid: true,
             status: 200,
             latencyMs,
-            discoveredModels: ['openai-fast', 'qwen', 'openai', 'mistral'],
-            modelCount: 4,
+            discoveredModels: ['openai-fast', 'openai', 'mistral'],
+            modelCount: 3,
             message: 'Pollinations free text gateway active and connected.'
           };
         }
@@ -300,7 +306,9 @@ export const aiService = {
 
     const provider = DEFAULT_PROVIDERS.find(p => p.id === providerId) || DEFAULT_PROVIDERS[0];
     const protocol = provider.protocol;
-    model = model || provider.defaultModel;
+    if (!model || !provider.availableModels.includes(model)) {
+      model = provider.defaultModel;
+    }
     const baseUrl = config.baseUrl || provider.baseUrl;
 
     let apiKey = this.getKey(providerId) || config.apiKey;

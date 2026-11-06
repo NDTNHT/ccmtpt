@@ -90,7 +90,7 @@
 
         <div class="checklist-container">
           <div v-if="!task.subTasks || task.subTasks.length === 0" class="empty-checklist">
-            No subtasks yet. Click "[1] BREAK DOWN SUBTASKS" or add one below.
+            No subtasks yet. Click "[1] BREAK DOWN SUBTASKS" to generate.
           </div>
 
           <div v-else class="checklist-items">
@@ -105,30 +105,14 @@
                 {{ st.completed ? '[X]' : '[ ]' }}
               </span>
               <span class="subtask-text">{{ st.title }}</span>
-              <span class="subtask-state">{{ st.completed ? 'COMPLETED' : 'PENDING' }}</span>
+              <span v-if="st.completed" class="subtask-state">COMPLETED</span>
             </div>
           </div>
-
-          <!-- Add custom subtask -->
-          <form class="add-subtask-form" @submit.prevent="onAddSubTask">
-            <input 
-              v-model="newSubTaskTitle"
-              type="text" 
-              class="tactical-input" 
-              placeholder="Add a new subtask..."
-            />
-            <button type="submit" class="tactical-btn-sm" :disabled="!newSubTaskTitle.trim()">
-              [+ ADD SUBTASK]
-            </button>
-          </form>
         </div>
       </div>
 
       <!-- Modal Footer -->
       <div class="modal-footer">
-        <div class="footer-status">
-          TASK SYNCHRONIZED // SPRING BOOT REST API
-        </div>
         <div class="footer-actions">
           <button 
             v-if="task?.status === 'TODO'" 
@@ -183,11 +167,9 @@ const emit = defineEmits([
 const {
   aiLoading,
   aiFeedback,
-  newSubTaskTitle,
   totalSubTasks,
   completedCount,
   statusColorClass,
-  onAddSubTask,
   onAiDecompose,
   onAiEstimateDeadline,
   onAiAnalyzePriority,

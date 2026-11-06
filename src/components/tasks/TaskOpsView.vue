@@ -252,8 +252,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useTaskStore } from '../../store/useTaskStore.js';
+import { useTaskOps } from '../../composables/useTaskOps.js';
 import TaskCard from './TaskCard.vue';
 import TaskDetailModal from './TaskDetailModal.vue';
 import CreateTaskModal from './CreateTaskModal.vue';
@@ -264,74 +263,25 @@ const {
   state,
   filteredTasks,
   taskStats,
-  createTask,
   startTask,
   completeTask,
   cancelTask,
-  selectTask,
-  setHoveredTask,
   toggleSubTask,
-  setFilters
-} = useTaskStore();
-
-const statusOptions = ['ALL', 'TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-const priorityOptions = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-
-const showCreateForm = ref(false);
-const isModalOpen = ref(false);
-const isCreateModalOpen = ref(false);
-
-const newTask = ref({
-  title: '',
-  description: '',
-  priority: 'HIGH',
-  dueDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-  projectId: null
-});
-
-const activePreviewTask = computed(() => {
-  return state.hoveredTask || state.selectedTask || filteredTasks.value[0] || null;
-});
-
-function onSearchInput(e) {
-  setFilters({ search: e.target.value });
-}
-
-function onSelectTask(task) {
-  selectTask(task);
-}
-
-function onHoverTask(task) {
-  setHoveredTask(task);
-}
-
-function openModalForTask(task) {
-  selectTask(task);
-  isModalOpen.value = true;
-}
-
-function handleTaskCreated(task) {
-  selectTask(task);
-}
-
-async function handleCreateTask() {
-  if (!newTask.value.title.trim()) return;
-  try {
-    const created = await createTask({ ...newTask.value });
-    emit('notify', `Task "${newTask.value.title}" created successfully.`, 'success');
-    selectTask(created);
-    newTask.value = {
-      title: '',
-      description: '',
-      priority: 'HIGH',
-      dueDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-      projectId: null
-    };
-    showCreateForm.value = false;
-  } catch (err) {
-    emit('notify', `Failed to create task: ${err.message}`, 'error');
-  }
-}
+  setFilters,
+  statusOptions,
+  priorityOptions,
+  showCreateForm,
+  isModalOpen,
+  isCreateModalOpen,
+  newTask,
+  activePreviewTask,
+  onSearchInput,
+  onSelectTask,
+  onHoverTask,
+  openModalForTask,
+  handleTaskCreated,
+  handleCreateTask
+} = useTaskOps({ emit });
 </script>
 
 <style scoped>

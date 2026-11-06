@@ -45,29 +45,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { useTaskStore } from '../../store/useTaskStore.js';
-import { useAiStore } from '../../store/useAiStore.js';
+import { useTacticalHeader } from '../../composables/useTacticalHeader.js';
 
-const { taskStats } = useTaskStore();
-const { state: aiState, activeProvider } = useAiStore();
-
-const activeEngine = computed(() => {
-  return `${activeProvider.value.name.toUpperCase()} (${aiState.config.model})`;
-});
-
-const currentTimestamp = ref(new Date().toTimeString().slice(0, 8) + ' UTC');
-let timer = null;
-
-onMounted(() => {
-  timer = setInterval(() => {
-    currentTimestamp.value = new Date().toTimeString().slice(0, 8) + ' UTC';
-  }, 1000);
-});
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer);
-});
+const {
+  taskStats,
+  aiState,
+  activeEngine,
+  currentTimestamp
+} = useTacticalHeader();
 </script>
 
 <style scoped>

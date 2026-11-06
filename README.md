@@ -79,16 +79,26 @@ Because this repository is a pure Vite application with `vercel.json` included a
 ```
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # Fast GitHub Actions build verification (~10s)
+│       └── ci.yml               # Fast GitHub Actions build verification (~15s)
 ├── src/
-│   ├── components/
+│   ├── components/              # Presentation Layer (Template + Brutalist Styling)
 │   │   ├── ai/                  # AI Copilot, prompt editor, and telemetry logs
 │   │   ├── layout/              # Tactical header, nav bar, and alert notifier
 │   │   └── tasks/               # Task cards, detail modals, board and ops view
-│   ├── services/
+│   ├── composables/             # Application Logic Layer (UI State & Handlers)
+│   │   ├── useAiCopilot.js      # AI workbench orchestration & full audit apply
+│   │   ├── useAiPromptEditor.js # Custom system prompt & gateway verification
+│   │   ├── useCreateTask.js     # Task creation, validation, and AI checkpoints
+│   │   ├── useTacticalHeader.js # Real-time telemetry, clock tick, and engine info
+│   │   ├── useTaskDetail.js     # Task inspector, checklist ops, AI recommendations
+│   │   └── useTaskOps.js        # Matrix search, filtering, and live preview inspector
+│   ├── domain/                  # Domain & Business Rules (Pure Functions)
+│   │   ├── dateUtils.js         # Date formatting, presets, and UTC calculations
+│   │   └── taskRules.js         # Title validation, priority & status definitions
+│   ├── services/                # Infrastructure & Data Layer
 │   │   ├── aiService.js         # Direct browser LLM client (Gemini, OpenAI, Claude)
 │   │   └── taskService.js       # LocalStorage persistence, task transitions, JSON backup
-│   ├── store/
+│   ├── store/                   # Global Reactive State
 │   │   ├── useAiStore.js        # AI configuration and inference reactive state
 │   │   └── useTaskStore.js      # Task board reactive state and stats
 │   ├── styles/
